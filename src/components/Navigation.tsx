@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
@@ -44,13 +43,6 @@ const Navigation = () => {
           <Link to="/" className="text-xl sm:text-2xl font-bold text-purple-600">Portfolio</Link>
         </div>
 
-        {/* Mobile menu button */}
-        <div className="md:hidden">
-          <button onClick={toggleMenu} className="text-gray-700 hover:text-purple-600">
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-
         {/* Desktop navigation */}
         <div className="hidden md:flex items-center space-x-4">
           {navItems.map((item) => (
@@ -82,82 +74,72 @@ const Navigation = () => {
               </button>
             </>
           ) : (
-            <>
-              <Link
-                to="/login"
-                className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
-              >
-                Login
-              </Link>
-              <Link
-                to="/signup"
-                className="px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
-              >
-                Sign Up
-              </Link>
-            </>
+            <Link
+              to="/login"
+              className="px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
+            >
+              Login
+            </Link>
           )}
         </div>
-      </nav>
 
-      {/* Mobile navigation */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-white border-t shadow-lg">
-          <div className="px-2 pt-2 pb-3 space-y-1">
-            {navItems.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className={`block px-3 py-2 text-base font-medium rounded-md transition-colors ${
-                  location.pathname === '/' && location.hash === item.href.split('#')[1]
-                    ? 'text-purple-600 bg-purple-50'
-                    : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
-                }`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {item.name}
-              </a>
-            ))}
-            {isAuthenticated ? (
-              <>
-                <Link
-                  to="/dashboard"
-                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
+        {/* Mobile menu button */}
+        <div className="md:hidden">
+          <button onClick={toggleMenu} className="text-gray-700 hover:text-purple-600">
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
+
+        {/* Mobile navigation */}
+        {isMenuOpen && (
+          <div className="md:hidden bg-white border-t shadow-lg">
+            <div className="px-2 pt-2 pb-3 space-y-1">
+              {navItems.map((item) => (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  className={`block px-3 py-2 text-base font-medium rounded-md transition-colors ${
+                    location.pathname === '/' && location.hash === item.href.split('#')[1]
+                      ? 'text-purple-600 bg-purple-50'
+                      : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
+                  }`}
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Dashboard
-                </Link>
-                <button
-                  onClick={() => {
-                    logout();
-                    setIsMenuOpen(false);
-                  }}
-                  className="block w-full text-left px-3 py-2 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
+                  {item.name}
+                </a>
+              ))}
+              {isAuthenticated ? (
+                <>
+                  <Link
+                    to="/dashboard"
+                    className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={() => {
+                      logout();
+                      setIsMenuOpen(false);
+                    }}
+                    className="block w-full text-left px-3 py-2 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
                 <Link
                   to="/login"
-                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
+                  className="block px-3 py-2 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Login
                 </Link>
-                <Link
-                  to="/signup"
-                  className="block px-3 py-2 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Sign Up
-                </Link>
-              </>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </nav>
     </header>
   );
 };

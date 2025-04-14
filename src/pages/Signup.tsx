@@ -1,13 +1,16 @@
 
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, Lock, User, UserPlus } from 'lucide-react';
+
+// The authorized email for admin signup
+const AUTHORIZED_EMAIL = 'admin@portfolio.com';
 
 const Signup = () => {
   const [email, setEmail] = useState('');
@@ -18,9 +21,27 @@ const Signup = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Animation classes
+  const [isVisible, setIsVisible] = useState(false);
+  
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
+    // Check if the email is authorized
+    if (email !== AUTHORIZED_EMAIL) {
+      toast({
+        title: "Unauthorized",
+        description: "Sorry, signup is restricted to authorized administrators only.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const success = await signup(email, password, name);
@@ -28,7 +49,7 @@ const Signup = () => {
       if (success) {
         toast({
           title: "Account created",
-          description: "Your account has been created successfully",
+          description: "Your admin account has been created successfully",
         });
         navigate('/dashboard');
       } else {
@@ -51,16 +72,22 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md shadow-xl">
+      <Card 
+        className={`w-full max-w-md shadow-xl transition-all duration-500 transform ${
+          isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+        }`}
+      >
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-3xl font-bold text-gray-800">Create an account</CardTitle>
+          <CardTitle className="text-3xl font-bold text-gray-800 animate-fade-in">
+            Admin Signup
+          </CardTitle>
           <CardDescription className="text-gray-600">
-            Enter your details to create your account
+            Restricted access - Administrators only
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-2 transition-all duration-300 hover:scale-[1.02]">
               <Label htmlFor="name">Full Name</Label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
@@ -75,14 +102,14 @@ const Signup = () => {
                 />
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 transition-all duration-300 hover:scale-[1.02]">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="name@example.com"
+                  placeholder="admin@portfolio.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -90,7 +117,7 @@ const Signup = () => {
                 />
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 transition-all duration-300 hover:scale-[1.02]">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
@@ -107,26 +134,14 @@ const Signup = () => {
             </div>
             <Button 
               type="submit" 
-              className="w-full bg-purple-600 hover:bg-purple-700" 
+              className="w-full bg-purple-600 hover:bg-purple-700 transform transition-all duration-300 hover:scale-[1.02]" 
               disabled={isLoading}
             >
-              {isLoading ? 'Creating account...' : 'Create account'} <UserPlus className="ml-2 h-4 w-4" />
+              {isLoading ? 'Creating account...' : 'Create admin account'} 
+              <UserPlus className="ml-2 h-4 w-4" />
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-2">
-          <div className="text-center text-sm text-gray-600">
-            Already have an account?{" "}
-            <Link to="/login" className="text-purple-600 hover:underline">
-              Log in
-            </Link>
-          </div>
-          <div className="text-center text-sm text-gray-600">
-            <Link to="/" className="text-purple-600 hover:underline">
-              Back to Portfolio
-            </Link>
-          </div>
-        </CardFooter>
       </Card>
     </div>
   );
