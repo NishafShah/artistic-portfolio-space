@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, Lock, User, UserPlus } from 'lucide-react';
 
-// The authorized email for admin signup
 const AUTHORIZED_EMAIL = 'admin@portfolio.com';
 
 const Signup = () => {
@@ -21,7 +19,6 @@ const Signup = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Animation classes
   const [isVisible, setIsVisible] = useState(false);
   
   useEffect(() => {
@@ -32,7 +29,6 @@ const Signup = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Check if the email is authorized
     if (email !== AUTHORIZED_EMAIL) {
       toast({
         title: "Unauthorized",
@@ -71,11 +67,16 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-white to-indigo-50 p-4 relative overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute w-96 h-96 -top-48 -left-48 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+        <div className="absolute w-96 h-96 -bottom-48 -right-48 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+      </div>
+
       <Card 
-        className={`w-full max-w-md shadow-xl transition-all duration-500 transform ${
+        className={`w-full max-w-md shadow-2xl transition-all duration-500 transform ${
           isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-        }`}
+        } relative z-10 backdrop-blur-sm bg-white/90`}
       >
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-3xl font-bold text-gray-800 animate-fade-in">
@@ -134,11 +135,14 @@ const Signup = () => {
             </div>
             <Button 
               type="submit" 
-              className="w-full bg-purple-600 hover:bg-purple-700 transform transition-all duration-300 hover:scale-[1.02]" 
+              className="w-full bg-purple-600 hover:bg-purple-700 transform transition-all duration-300 hover:scale-[1.02] relative overflow-hidden group"
               disabled={isLoading}
             >
-              {isLoading ? 'Creating account...' : 'Create admin account'} 
-              <UserPlus className="ml-2 h-4 w-4" />
+              <span className="relative z-10 flex items-center justify-center">
+                {isLoading ? 'Creating account...' : 'Create admin account'} 
+                <UserPlus className="ml-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
+              </span>
+              <div className="absolute inset-0 bg-purple-700 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
             </Button>
           </form>
         </CardContent>
