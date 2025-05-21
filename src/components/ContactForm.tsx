@@ -19,11 +19,24 @@ const ContactForm = () => {
     e.preventDefault();
     setIsSending(true);
 
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      setIsSending(false);
+      return;
+    }
+
     try {
-      // Simulate sending an email
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Simulate sending an email with a longer delay to make it feel more realistic
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Store the message in localStorage for demo purposes
+      // Store the message in localStorage and also try to actually send an email
+      // to shahmurrawat@gmail.com (this will only work if the user has an email client configured)
       const messages = JSON.parse(localStorage.getItem('portfolio_messages') || '[]');
       const newMessage = {
         id: `msg_${Date.now()}`,
@@ -38,9 +51,13 @@ const ContactForm = () => {
       messages.push(newMessage);
       localStorage.setItem('portfolio_messages', JSON.stringify(messages));
       
+      // Open the mail client
+      const mailtoLink = `mailto:shahmurrawat@gmail.com?subject=Contact from ${name}&body=Name: ${name}%0D%0AEmail: ${email}%0D%0APhone: ${phone || 'Not provided'}%0D%0A%0D%0AMessage:%0D%0A${message}`;
+      window.location.href = mailtoLink;
+      
       toast({
         title: "Message sent",
-        description: "Your message has been sent successfully",
+        description: "Your message has been sent successfully and your mail client should be opening",
       });
       
       // Reset form
@@ -51,7 +68,7 @@ const ContactForm = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to send your message. Please try again.",
+        description: "Failed to send your message. Please try again or contact directly via email.",
         variant: "destructive",
       });
     } finally {
@@ -126,7 +143,7 @@ const ContactForm = () => {
       >
         <span className="relative z-10 flex items-center justify-center">
           {isSending ? 'Sending...' : 'Send Message'} 
-          <Send className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+          <Send className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform animate-icon" />
         </span>
         <div className="absolute inset-0 bg-purple-700 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
       </Button>

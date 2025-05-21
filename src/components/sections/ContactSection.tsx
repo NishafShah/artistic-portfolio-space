@@ -23,27 +23,27 @@ const ContactSection = () => {
         <div className="mt-12 flex flex-wrap justify-center gap-6">
           <a 
             href="mailto:shahmurrawat@gmail.com" 
-            className="flex items-center gap-3 px-6 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-gray-800 shadow-sm"
+            className="flex items-center gap-3 px-6 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-gray-800 shadow-sm animate-icon"
           >
-            <Mail size={22} className="text-purple-600" />
+            <Mail size={22} className="text-purple-600 transform transition-all duration-300 hover:scale-125" />
             <span>shahmurrawat@gmail.com</span>
           </a>
           <a 
             href="https://github.com/NishafShah" 
-            className="flex items-center gap-3 px-6 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-gray-800 shadow-sm"
+            className="flex items-center gap-3 px-6 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-gray-800 shadow-sm animate-icon"
             target="_blank" 
             rel="noopener noreferrer"
           >
-            <Github size={22} className="text-purple-600" />
+            <Github size={22} className="text-purple-600 transform transition-all duration-300 hover:scale-125" />
             <span>GitHub</span>
           </a>
           <a 
             href="https://www.linkedin.com/in/syed-nishaf-hussain-shah-8b2409310/" 
-            className="flex items-center gap-3 px-6 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-gray-800 shadow-sm"
+            className="flex items-center gap-3 px-6 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-gray-800 shadow-sm animate-icon"
             target="_blank" 
             rel="noopener noreferrer"
           >
-            <Linkedin size={22} className="text-purple-600" />
+            <Linkedin size={22} className="text-purple-600 transform transition-all duration-300 hover:scale-125" />
             <span>LinkedIn</span>
           </a>
         </div>

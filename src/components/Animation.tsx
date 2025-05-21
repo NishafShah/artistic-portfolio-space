@@ -15,12 +15,32 @@ const Animation = ({ children }: { children: React.ReactNode }) => {
       { threshold: 0.1 }
     );
 
+    // Animate sections with 'reveal' class
     document.querySelectorAll('.reveal').forEach((el) => {
       el.classList.add('opacity-0');
       observer.observe(el);
     });
 
-    return () => observer.disconnect();
+    // Animate icons with 'animate-icon' class
+    document.querySelectorAll('.animate-icon').forEach((el) => {
+      el.addEventListener('mouseenter', () => {
+        el.classList.add('animate-bounce');
+      });
+      
+      el.addEventListener('mouseleave', () => {
+        el.classList.remove('animate-bounce');
+      });
+    });
+
+    return () => {
+      observer.disconnect();
+      
+      // Clean up event listeners
+      document.querySelectorAll('.animate-icon').forEach((el) => {
+        el.removeEventListener('mouseenter', () => {});
+        el.removeEventListener('mouseleave', () => {});
+      });
+    };
   }, []);
 
   return <>{children}</>;
