@@ -84,7 +84,7 @@ const Index = () => {
         <div className="text-center relative z-10 max-w-3xl mx-auto">
           <p className="text-purple-600 font-medium mb-4 tracking-wider uppercase animate-fade-in">Welcome to my portfolio</p>
           <h1 className="text-5xl md:text-7xl font-bold text-gray-800 mb-6 leading-tight animate-fade-in delay-150">
-            Hello, I'm <span className="text-purple-600 relative inline-block after:content-[''] after:absolute after:w-full after:scale-x-0 after:h-1 after:-bottom-1 after:left-0 after:bg-purple-600 after:origin-bottom-right after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-bottom-left">Your Name</span>
+            Hello, I'm <span className="text-purple-600 relative inline-block after:content-[''] after:absolute after:w-full after:scale-x-0 after:h-1 after:-bottom-1 after:left-0 after:bg-purple-600 after:origin-bottom-right after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-bottom-left">Syed Nishaf Hussian Shah</span>
           </h1>
           <p className="text-xl md:text-2xl text-gray-600 mb-8 leading-relaxed animate-fade-in delay-300">
             Full Stack Developer & UI/UX Designer, crafting beautiful and functional digital experiences.
@@ -135,7 +135,7 @@ const Index = () => {
               className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 flex items-center gap-2 font-medium"
               asChild
             >
-              <a href="#" target="_blank" rel="noopener noreferrer">
+              <a href="/resume.pdf" target="_blank" rel="noopener noreferrer" download="Syed_Nishaf_Resume.pdf">
                 Download Resume <ExternalLink size={18} />
               </a>
             </Button>
@@ -240,7 +240,7 @@ const Index = () => {
               <span>shahmurrawat@gmail.com</span>
             </a>
             <a 
-              href="#" 
+              href="https://github.com/NishafShah" 
               className="flex items-center gap-3 px-6 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-gray-800 shadow-sm"
               target="_blank" 
               rel="noopener noreferrer"
@@ -249,7 +249,7 @@ const Index = () => {
               <span>GitHub</span>
             </a>
             <a 
-              href="#" 
+              href="https://www.linkedin.com/in/syed-nishaf-hussain-shah-8b2409310/" 
               className="flex items-center gap-3 px-6 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-gray-800 shadow-sm"
               target="_blank" 
               rel="noopener noreferrer"
@@ -264,15 +264,15 @@ const Index = () => {
       <footer className="py-8 bg-gray-900 text-white reveal">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center">
-            <p className="text-gray-400">&copy; {new Date().getFullYear()} Your Name. All rights reserved.</p>
+            <p className="text-gray-400">&copy; {new Date().getFullYear()} Syed Nishaf Hussian Shah. All rights reserved.</p>
             <div className="flex justify-center space-x-4 mt-4">
-              <a href="#" className="text-gray-400 hover:text-purple-400 transition-colors">
+              <a href="https://github.com/NishafShah" className="text-gray-400 hover:text-purple-400 transition-colors" target="_blank" rel="noopener noreferrer">
                 <Github size={20} />
               </a>
-              <a href="#" className="text-gray-400 hover:text-purple-400 transition-colors">
+              <a href="https://www.linkedin.com/in/syed-nishaf-hussain-shah-8b2409310/" className="text-gray-400 hover:text-purple-400 transition-colors" target="_blank" rel="noopener noreferrer">
                 <Linkedin size={20} />
               </a>
-              <a href="mailto:your.email@example.com" className="text-gray-400 hover:text-purple-400 transition-colors">
+              <a href="mailto:shahmurrawat@gmail.com" className="text-gray-400 hover:text-purple-400 transition-colors">
                 <Mail size={20} />
               </a>
             </div>
