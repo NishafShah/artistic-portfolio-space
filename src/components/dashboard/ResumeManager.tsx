@@ -1,5 +1,5 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,8 +8,24 @@ import { Upload, Download } from 'lucide-react';
 const ResumeManager = () => {
   const [uploadingResume, setUploadingResume] = useState(false);
   const [resumeName, setResumeName] = useState('resume.pdf');
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Check if there's a stored resume name
+    const storedResumeName = localStorage.getItem('portfolio_resume_name');
+    if (storedResumeName) {
+      setResumeName(storedResumeName);
+    }
+
+    // Check if there's a stored resume URL
+    const storedResumeUrl = localStorage.getItem('portfolio_resume_url');
+    if (storedResumeUrl) {
+      setResumeUrl(storedResumeUrl);
+    }
+  }, []);
 
   const handleResumeUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -29,33 +45,52 @@ const ResumeManager = () => {
     
     setUploadingResume(true);
     setResumeName(file.name);
+    setResumeFile(file);
     
-    // This is just a mock implementation since we can't actually upload files in this demo
-    // In a real app, this would upload the file to a server
+    // Create a URL for the file
+    const fileUrl = URL.createObjectURL(file);
+    setResumeUrl(fileUrl);
+    
+    // Store in localStorage
+    localStorage.setItem('portfolio_resume_name', file.name);
+    localStorage.setItem('portfolio_resume_url', fileUrl);
+    
     setTimeout(() => {
       toast({
         title: "Resume uploaded",
         description: "Your resume has been uploaded successfully",
       });
       setUploadingResume(false);
-      
-      // Store the file name in localStorage
-      localStorage.setItem('portfolio_resume_name', file.name);
     }, 1500);
   };
 
   const handleDownload = () => {
-    // Create a link to the resume PDF and trigger download
-    const link = document.createElement('a');
-    link.href = '/resume.pdf';
-    link.download = resumeName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
+    if (resumeUrl) {
+      // Create a link to the resume PDF and trigger download
+      const link = document.createElement('a');
+      link.href = resumeUrl;
+      link.download = resumeName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Resume download started",
+        description: "Your resume is being downloaded",
+      });
+    } else {
+      toast({
+        title: "No resume available",
+        description: "Please upload a resume first",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveChanges = () => {
     toast({
-      title: "Resume download started",
-      description: "Your resume is being downloaded",
+      title: "Changes saved",
+      description: "Your resume has been updated successfully",
     });
   };
 
@@ -98,6 +133,7 @@ const ResumeManager = () => {
                 variant="outline" 
                 className="flex items-center gap-1 transition-transform hover:scale-105"
                 onClick={handleDownload}
+                disabled={!resumeUrl}
               >
                 <Download size={16} className="animate-bounce" /> Download
               </Button>
@@ -108,6 +144,7 @@ const ResumeManager = () => {
             <Button 
               disabled={uploadingResume}
               className="bg-purple-600 hover:bg-purple-700 w-full transition-all duration-300 hover:scale-[1.02]"
+              onClick={handleSaveChanges}
             >
               {uploadingResume ? 'Saving...' : 'Save Changes'}
             </Button>

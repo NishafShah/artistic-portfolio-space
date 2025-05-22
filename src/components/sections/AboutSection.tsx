@@ -9,8 +9,10 @@ const AboutSection = () => {
   const [bio, setBio] = useState(
     "I'm Nishaf Shah, a passionate developer with over 5 years of experience in creating beautiful and functional web applications. I specialize in modern web technologies and love bringing ideas to life through clean, elegant code.\n\nWhen I'm not coding, you can find me exploring new technologies, contributing to open source projects, or sharing my knowledge through technical writing. I believe in continuous learning and staying at the cutting edge of web development."
   );
+  const [resumeName, setResumeName] = useState('Nishaf_Shah_Resume.pdf');
+  const [resumeUrl, setResumeUrl] = useState<string | null>(null);
 
-  // Load about data from localStorage on component mount
+  // Load about data and resume from localStorage on component mount
   useEffect(() => {
     const savedAbout = localStorage.getItem('portfolio_about');
     if (savedAbout) {
@@ -18,6 +20,17 @@ const AboutSection = () => {
       setName(parsedAbout.name || name);
       setTitle(parsedAbout.title || title);
       setBio(parsedAbout.bio || bio);
+    }
+
+    // Load resume name and URL
+    const storedResumeName = localStorage.getItem('portfolio_resume_name');
+    if (storedResumeName) {
+      setResumeName(storedResumeName);
+    }
+
+    const storedResumeUrl = localStorage.getItem('portfolio_resume_url');
+    if (storedResumeUrl) {
+      setResumeUrl(storedResumeUrl);
     }
   }, []);
 
@@ -27,6 +40,26 @@ const AboutSection = () => {
         {paragraph}
       </p>
     ));
+  };
+
+  const handleDownloadResume = () => {
+    if (resumeUrl) {
+      // Create a link to the resume PDF and trigger download
+      const link = document.createElement('a');
+      link.href = resumeUrl;
+      link.download = resumeName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      // Fallback to the default resume
+      const link = document.createElement('a');
+      link.href = '/resume.pdf';
+      link.download = resumeName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   return (
@@ -44,11 +77,9 @@ const AboutSection = () => {
           <Button 
             variant="ghost" 
             className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 flex items-center gap-2 font-medium transition-all duration-300 hover:scale-110"
-            asChild
+            onClick={handleDownloadResume}
           >
-            <a href="/resume.pdf" target="_blank" rel="noopener noreferrer" download="Nishaf_Shah_Resume.pdf">
-              Download Resume <ExternalLink size={18} className="animate-bounce" />
-            </a>
+            Download Resume <ExternalLink size={18} className="animate-bounce" />
           </Button>
         </div>
       </div>
