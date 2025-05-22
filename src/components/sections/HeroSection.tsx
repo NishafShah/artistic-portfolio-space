@@ -9,7 +9,7 @@ const HeroSection = () => {
       <div className="text-center relative z-10 max-w-3xl mx-auto">
         <p className="text-purple-600 font-medium mb-4 tracking-wider uppercase animate-fade-in">Welcome to my portfolio</p>
         <h1 className="text-5xl md:text-7xl font-bold text-gray-800 mb-6 leading-tight animate-fade-in delay-150">
-          Hello, I'm <span className="text-purple-600 relative inline-block after:content-[''] after:absolute after:w-full after:scale-x-0 after:h-1 after:-bottom-1 after:left-0 after:bg-purple-600 after:origin-bottom-right after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-bottom-left">Syed Nishaf Hussian Shah</span>
+          Hello, I'm <span className="text-purple-600 relative inline-block after:content-[''] after:absolute after:w-full after:scale-x-0 after:h-1 after:-bottom-1 after:left-0 after:bg-purple-600 after:origin-bottom-right after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-bottom-left">Nishaf Shah</span>
         </h1>
         <p className="text-xl md:text-2xl text-gray-600 mb-8 leading-relaxed animate-fade-in delay-300">
           Full Stack Developer & UI/UX Designer, crafting beautiful and functional digital experiences.

@@ -32,11 +32,7 @@ const ContactForm = () => {
     }
 
     try {
-      // Simulate sending an email with a longer delay to make it feel more realistic
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
       // Store the message in localStorage and also try to actually send an email
-      // to shahmurrawat@gmail.com (this will only work if the user has an email client configured)
       const messages = JSON.parse(localStorage.getItem('portfolio_messages') || '[]');
       const newMessage = {
         id: `msg_${Date.now()}`,
@@ -51,13 +47,13 @@ const ContactForm = () => {
       messages.push(newMessage);
       localStorage.setItem('portfolio_messages', JSON.stringify(messages));
       
-      // Open the mail client
-      const mailtoLink = `mailto:shahmurrawat@gmail.com?subject=Contact from ${name}&body=Name: ${name}%0D%0AEmail: ${email}%0D%0APhone: ${phone || 'Not provided'}%0D%0A%0D%0AMessage:%0D%0A${message}`;
-      window.location.href = mailtoLink;
+      // Open the mail client with populated fields
+      const mailtoLink = `mailto:shahmurrawat@gmail.com?subject=Message from ${name}&body=Name: ${name}%0D%0AEmail: ${email}%0D%0APhone: ${phone || 'Not provided'}%0D%0A%0D%0AMessage:%0D%0A${encodeURIComponent(message)}`;
+      window.open(mailtoLink, '_blank');
       
       toast({
         title: "Message sent",
-        description: "Your message has been sent successfully and your mail client should be opening",
+        description: "Your message has been sent successfully and your mail client has been opened",
       });
       
       // Reset form
@@ -84,7 +80,7 @@ const ContactForm = () => {
           <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
           <Input
             id="name"
-            placeholder="John Doe"
+            placeholder="Nishaf Shah"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="pl-10"
@@ -100,7 +96,7 @@ const ContactForm = () => {
           <Input
             id="email"
             type="email"
-            placeholder="john@example.com"
+            placeholder="shahmurrawat@gmail.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="pl-10"
@@ -110,13 +106,13 @@ const ContactForm = () => {
       </div>
       
       <div className="space-y-2 transition-all duration-300 hover:scale-[1.01]">
-        <Label htmlFor="phone">Phone Number (Optional)</Label>
+        <Label htmlFor="phone">Phone Number</Label>
         <div className="relative">
           <Phone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
           <Input
             id="phone"
             type="tel"
-            placeholder="+1 (123) 456-7890"
+            placeholder="+92 300 1234567"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             className="pl-10"
