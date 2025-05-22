@@ -32,7 +32,7 @@ const ContactForm = () => {
     }
 
     try {
-      // Store the message in localStorage and also try to actually send an email
+      // Store the message in localStorage
       const messages = JSON.parse(localStorage.getItem('portfolio_messages') || '[]');
       const newMessage = {
         id: `msg_${Date.now()}`,
@@ -48,12 +48,12 @@ const ContactForm = () => {
       localStorage.setItem('portfolio_messages', JSON.stringify(messages));
       
       // Open the mail client with populated fields
-      const mailtoLink = `mailto:shahmurrawat@gmail.com?subject=Message from ${name}&body=Name: ${name}%0D%0AEmail: ${email}%0D%0APhone: ${phone || 'Not provided'}%0D%0A%0D%0AMessage:%0D%0A${encodeURIComponent(message)}`;
+      const mailtoLink = `mailto:shahmurrawat@gmail.com?subject=Message from ${encodeURIComponent(name)}&body=Name: ${encodeURIComponent(name)}%0D%0AEmail: ${encodeURIComponent(email)}%0D%0APhone: ${encodeURIComponent(phone || 'Not provided')}%0D%0A%0D%0AMessage:%0D%0A${encodeURIComponent(message)}`;
       window.open(mailtoLink, '_blank');
       
       toast({
         title: "Message sent",
-        description: "Your message has been sent successfully and your mail client has been opened",
+        description: "Your message has been saved and your mail client has been opened",
       });
       
       // Reset form
@@ -73,7 +73,7 @@ const ContactForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-white shadow-lg rounded-2xl p-8">
+    <form onSubmit={handleSubmit} className="space-y-6 bg-white shadow-lg rounded-2xl p-8 animate-fade-in">
       <div className="space-y-2 transition-all duration-300 hover:scale-[1.01]">
         <Label htmlFor="name">Your Name</Label>
         <div className="relative">
@@ -112,7 +112,7 @@ const ContactForm = () => {
           <Input
             id="phone"
             type="tel"
-            placeholder="+92 300 1234567"
+            placeholder="+92 327 7054143"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             className="pl-10"
@@ -139,7 +139,7 @@ const ContactForm = () => {
       >
         <span className="relative z-10 flex items-center justify-center">
           {isSending ? 'Sending...' : 'Send Message'} 
-          <Send className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform animate-icon" />
+          <Send className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform animate-bounce" />
         </span>
         <div className="absolute inset-0 bg-purple-700 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
       </Button>
