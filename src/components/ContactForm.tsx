@@ -47,13 +47,11 @@ const ContactForm = () => {
       messages.push(newMessage);
       localStorage.setItem('portfolio_messages', JSON.stringify(messages));
       
-      // Open the mail client with populated fields
-      const mailtoLink = `mailto:shahmurrawat@gmail.com?subject=Message from ${encodeURIComponent(name)}&body=Name: ${encodeURIComponent(name)}%0D%0AEmail: ${encodeURIComponent(email)}%0D%0APhone: ${encodeURIComponent(phone || 'Not provided')}%0D%0A%0D%0AMessage:%0D%0A${encodeURIComponent(message)}`;
-      window.open(mailtoLink, '_blank');
-      
+      // Show success message
       toast({
-        title: "Message sent",
-        description: "Your message has been saved and your mail client has been opened",
+        title: "Message sent successfully!",
+        description: "Thank you for your message. I will get back to you soon.",
+        duration: 5000,
       });
       
       // Reset form
@@ -64,7 +62,7 @@ const ContactForm = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to send your message. Please try again or contact directly via email.",
+        description: "Failed to send your message. Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -112,7 +110,7 @@ const ContactForm = () => {
           <Input
             id="phone"
             type="tel"
-            placeholder="+92 327 7054143"
+            placeholder="03277054143"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             className="pl-10"

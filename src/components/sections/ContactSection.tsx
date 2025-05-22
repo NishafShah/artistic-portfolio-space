@@ -29,11 +29,11 @@ const ContactSection = () => {
             <span>shahmurrawat@gmail.com</span>
           </a>
           <a 
-            href="tel:+923277054143" 
+            href="tel:03277054143" 
             className="flex items-center gap-3 px-6 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-gray-800 shadow-sm animate-bounce"
           >
             <Phone size={22} className="text-purple-600 transform transition-all duration-300 hover:scale-125" />
-            <span>+92 327 7054143</span>
+            <span>03277054143</span>
           </a>
           <a 
             href="https://github.com/NishafShah" 
