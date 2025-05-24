@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, Code, Briefcase, Cpu, BookOpen, MessageSquare, LogIn, LogOut, LayoutDashboard } from 'lucide-react';
+import { Menu, X, User, Code, Briefcase, Settings, BookOpen, MessageSquare, LogIn, LogOut, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Navigation = () => {
@@ -18,7 +18,7 @@ const Navigation = () => {
     { name: 'Home', href: '/#home', icon: User },
     { name: 'About', href: '/#about', icon: User },
     { name: 'Projects', href: '/#projects', icon: Briefcase },
-    { name: 'Skills', href: '/#skills', icon: Cpu },
+    { name: 'Skills', href: '/#skills', icon: Settings },
     { name: 'Courses', href: '/#courses', icon: BookOpen },
     { name: 'Contact', href: '/#contact', icon: MessageSquare },
   ];
@@ -44,7 +44,7 @@ const Navigation = () => {
         <div className="flex-shrink-0 group">
           <Link to="/" className="flex items-center space-x-3 text-2xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent group-hover:scale-105 transition-transform duration-300">
             <Code className="w-8 h-8 text-purple-600 group-hover:rotate-12 transition-transform duration-300" />
-            <span className="font-extrabold tracking-tight">DevPortfolio</span>
+            <span className="font-extrabold tracking-tight">Portfolio</span>
           </Link>
         </div>
 

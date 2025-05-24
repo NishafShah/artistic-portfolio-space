@@ -3,12 +3,15 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Clock, DollarSign, Users, Play, Star, Zap } from 'lucide-react';
+import { BookOpen, Clock, DollarSign, Users, Play, Star, Zap, User } from 'lucide-react';
 import { Course } from '@/types/course';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const CoursesSection = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [visibleCourses, setVisibleCourses] = useState<number>(0);
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     const storedCourses = JSON.parse(localStorage.getItem('portfolio_courses') || '[]');
@@ -17,7 +20,6 @@ const CoursesSection = () => {
 
   useEffect(() => {
     if (courses.length > 0) {
-      // Animate courses one by one
       courses.forEach((_, index) => {
         setTimeout(() => {
           setVisibleCourses(prev => Math.max(prev, index + 1));
@@ -39,6 +41,16 @@ const CoursesSection = () => {
             <BookOpen className="w-24 h-24 mx-auto mb-6 text-purple-400 animate-pulse" />
             <p className="text-2xl text-gray-600 font-semibold">No courses available yet</p>
             <p className="text-lg text-gray-500 mt-2">Check back soon for exciting learning opportunities!</p>
+            {isAuthenticated && (
+              <div className="mt-6">
+                <Link to="/dashboard">
+                  <Button className="bg-purple-600 hover:bg-purple-700">
+                    <User className="w-5 h-5 mr-2" />
+                    Add Courses
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -71,27 +83,37 @@ const CoursesSection = () => {
         <div className="text-center mb-20 animate-fade-in">
           <div className="inline-flex items-center px-6 py-3 rounded-full bg-white/90 backdrop-blur-lg border-2 border-purple-200 text-purple-700 font-bold mb-8 animate-bounce shadow-xl">
             <BookOpen className="w-5 h-5 mr-3 animate-pulse" />
-            Knowledge Sharing Platform
+            Featured Courses
           </div>
           <h2 className="text-5xl md:text-7xl font-heading font-black text-gradient mb-8 animate-fade-in">
-            Featured Courses
+            My Courses
           </h2>
           <p className="text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed font-medium">
-            Expand your skills with our comprehensive courses designed for all levels of expertise.
+            Explore the courses I've created to help you learn and grow in your journey.
           </p>
           <div className="flex justify-center mt-8">
             <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-lg rounded-full px-6 py-3 border-2 border-purple-200 shadow-lg">
               <Star className="w-5 h-5 text-yellow-500 animate-spin" />
-              <span className="text-purple-700 font-bold">{courses.length} Premium Courses Available</span>
+              <span className="text-purple-700 font-bold">{courses.length} Course{courses.length !== 1 ? 's' : ''} Available</span>
             </div>
           </div>
+          {isAuthenticated && (
+            <div className="mt-6">
+              <Link to="/dashboard">
+                <Button className="bg-purple-600 hover:bg-purple-700">
+                  <User className="w-5 h-5 mr-2" />
+                  Manage Courses
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
           {courses.map((course, index) => (
             <Card 
               key={course.id} 
-              className={`group hover:shadow-2xl transition-all duration-700 hover:scale-110 border-3 border-gray-200 hover:border-purple-300 bg-white/95 backdrop-blur-lg animate-fade-in relative overflow-hidden ${
+              className={`group hover:shadow-2xl transition-all duration-700 hover:scale-110 border-4 border-gray-200 hover:border-purple-300 bg-white/95 backdrop-blur-lg animate-fade-in relative overflow-hidden ${
                 index < visibleCourses ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
               }`}
               style={{ 
@@ -100,7 +122,6 @@ const CoursesSection = () => {
                 transition: 'all 0.7s ease-out'
               }}
             >
-              {/* Animated Border Glow */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 rounded-lg opacity-0 group-hover:opacity-20 transition-opacity duration-500 animate-gradient"></div>
               
               {course.image && (
@@ -111,17 +132,10 @@ const CoursesSection = () => {
                     className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <Button
-                    size="sm"
-                    className="absolute top-4 right-4 bg-white/95 text-gray-800 hover:bg-white hover:scale-125 transition-all duration-500 opacity-0 group-hover:opacity-100 shadow-xl"
-                  >
-                    <Play className="w-4 h-4 mr-2 animate-pulse" />
-                    Preview
-                  </Button>
                   <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-lg rounded-full px-4 py-2 opacity-0 group-hover:opacity-100 transition-all duration-500">
                     <span className="text-white font-bold text-sm flex items-center">
                       <Zap className="w-4 h-4 mr-2 text-yellow-400" />
-                      Premium Content
+                      Course Content
                     </span>
                   </div>
                 </div>
@@ -142,10 +156,12 @@ const CoursesSection = () => {
                     <Clock className="w-5 h-5 text-purple-600" />
                     <span className="font-bold text-purple-700">{course.duration}</span>
                   </div>
-                  <div className="flex items-center space-x-2 font-black text-2xl text-gradient">
-                    <DollarSign className="w-6 h-6" />
-                    <span>{course.price}</span>
-                  </div>
+                  {course.price > 0 && (
+                    <div className="flex items-center space-x-2 font-black text-2xl text-gradient">
+                      <DollarSign className="w-6 h-6" />
+                      <span>{course.price}</span>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               
@@ -163,7 +179,7 @@ const CoursesSection = () => {
                       </div>
                       <div className="flex items-center space-x-3 text-lg text-purple-700">
                         <Users className="w-6 h-6" />
-                        <span className="font-bold">1.2k Students</span>
+                        <span className="font-bold">Learn</span>
                       </div>
                     </div>
                     
@@ -188,21 +204,20 @@ const CoursesSection = () => {
                 
                 <Button className="w-full btn-primary group mt-6 text-lg py-4 font-bold shadow-xl">
                   <Play className="w-5 h-5 mr-3 group-hover:scale-125 transition-transform duration-300" />
-                  Enroll Now - Start Learning!
+                  View Course Details
                 </Button>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Call to Action Section */}
         <div className="text-center mt-20 animate-fade-in">
           <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 rounded-3xl p-12 text-white shadow-2xl border-4 border-white/20 backdrop-blur-lg">
-            <h3 className="text-4xl font-heading font-black mb-6">Ready to Start Your Learning Journey?</h3>
-            <p className="text-xl mb-8 opacity-90">Join thousands of students already transforming their careers</p>
+            <h3 className="text-4xl font-heading font-black mb-6">Ready to Start Learning?</h3>
+            <p className="text-xl mb-8 opacity-90">Explore my courses and enhance your skills</p>
             <Button className="bg-white text-purple-600 hover:bg-gray-100 font-bold text-xl px-10 py-4 rounded-full shadow-xl hover:scale-110 transition-all duration-300">
               <BookOpen className="w-6 h-6 mr-3" />
-              Browse All Courses
+              Explore All Courses
             </Button>
           </div>
         </div>
