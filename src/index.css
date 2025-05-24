@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;600;700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
@@ -198,7 +197,7 @@
   }
 
   .btn-magical {
-    @apply px-10 py-5 bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white font-black rounded-2xl shadow-2xl hover:shadow-purple-500/50 hover:scale-125 transition-all duration-700 border-3 border-white/50 animate-gradient;
+    @apply px-10 py-5 bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white font-black rounded-2xl shadow-2xl hover:shadow-purple-500/50 hover:scale-125 transition-all duration-700 border-4 border-white/50 animate-gradient;
   }
 
   .skill-icon {
