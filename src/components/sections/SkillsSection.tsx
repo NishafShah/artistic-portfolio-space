@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 
 interface Skill {
@@ -16,11 +15,11 @@ const SkillsSection = () => {
     const storedSkills = JSON.parse(localStorage.getItem('portfolio_skills') || '[]');
     
     if (storedSkills.length === 0) {
-      const defaultSkills = [
-        { id: '1', name: 'JavaScript', level: 90, category: 'Language', icon: '🟨' },
-        { id: '2', name: 'React', level: 85, category: 'Framework', icon: '⚛️' },
-        { id: '3', name: 'TypeScript', level: 80, category: 'Language', icon: '🔷' },
-        { id: '4', name: 'Node.js', level: 75, category: 'Framework', icon: '💚' },
+      const defaultSkills: Skill[] = [
+        { id: '1', name: 'JavaScript', level: 90, category: 'Language' as const, icon: '🟨' },
+        { id: '2', name: 'React', level: 85, category: 'Framework' as const, icon: '⚛️' },
+        { id: '3', name: 'TypeScript', level: 80, category: 'Language' as const, icon: '🔷' },
+        { id: '4', name: 'Node.js', level: 75, category: 'Framework' as const, icon: '💚' },
       ];
       setSkills(defaultSkills);
     } else {
