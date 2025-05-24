@@ -5,34 +5,59 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Slider } from '@/components/ui/slider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash, Edit, Check, X } from 'lucide-react';
 
 interface Skill {
-  id: string;
+  id?: string;
   name: string;
   level: number;
+  category: 'Language' | 'Framework';
+  icon?: string;
 }
+
+const defaultSkillIcons = {
+  // Languages
+  'JavaScript': '🟨',
+  'TypeScript': '🔷',
+  'Python': '🐍',
+  'Java': '☕',
+  'C++': '⚡',
+  'PHP': '🐘',
+  'HTML': '🌐',
+  'CSS': '🎨',
+  
+  // Frameworks
+  'React': '⚛️',
+  'Next.js': '▲',
+  'Vue.js': '💚',
+  'Angular': '🅰️',
+  'Node.js': '💚',
+  'Express': '🚀',
+  'Laravel': '🎯',
+  'Spring': '🍃',
+};
 
 const SkillsManager = () => {
   const [skills, setSkills] = useState<Skill[]>([]);
-  const [name, setName] = useState('');
-  const [level, setLevel] = useState(75);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingSkill, setEditingSkill] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newSkill, setNewSkill] = useState<Skill>({
+    name: '',
+    level: 50,
+    category: 'Language',
+  });
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load existing skills
     const storedSkills = JSON.parse(localStorage.getItem('portfolio_skills') || '[]');
     
     if (storedSkills.length === 0) {
-      // If no skills exist in localStorage, use the default skills from SkillsSection
       const defaultSkills = [
-        { id: 'skill_1', name: 'Frontend Development', level: 90 },
-        { id: 'skill_2', name: 'UI/UX Design', level: 85 },
-        { id: 'skill_3', name: 'Backend Development', level: 80 },
-        { id: 'skill_4', name: 'Mobile Development', level: 75 },
+        { id: '1', name: 'JavaScript', level: 90, category: 'Language', icon: '🟨' },
+        { id: '2', name: 'React', level: 85, category: 'Framework', icon: '⚛️' },
+        { id: '3', name: 'TypeScript', level: 80, category: 'Language', icon: '🔷' },
+        { id: '4', name: 'Node.js', level: 75, category: 'Framework', icon: '💚' },
       ];
       setSkills(defaultSkills);
       localStorage.setItem('portfolio_skills', JSON.stringify(defaultSkills));
@@ -41,215 +66,232 @@ const SkillsManager = () => {
     }
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const saveSkills = (updatedSkills: Skill[]) => {
+    localStorage.setItem('portfolio_skills', JSON.stringify(updatedSkills));
+    setSkills(updatedSkills);
+  };
 
-    try {
-      // Add new skill
-      const newSkill = {
-        id: `skill_${Date.now()}`,
-        name,
-        level,
-      };
-      
-      const updatedSkills = [...skills, newSkill];
-      setSkills(updatedSkills);
-      
-      // Save to localStorage
-      localStorage.setItem('portfolio_skills', JSON.stringify(updatedSkills));
-      
-      toast({
-        title: "Skill added",
-        description: "Your skill has been added successfully",
-      });
-      
-      // Reset form
-      setName('');
-      setLevel(75);
-    } catch (error) {
+  const handleAddSkill = () => {
+    if (!newSkill.name) {
       toast({
         title: "Error",
-        description: "Failed to add skill",
+        description: "Please enter a skill name",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
+      return;
     }
+
+    const skillWithIcon = {
+      ...newSkill,
+      id: `skill_${Date.now()}`,
+      icon: defaultSkillIcons[newSkill.name as keyof typeof defaultSkillIcons] || '🔧',
+    };
+
+    const updatedSkills = [...skills, skillWithIcon];
+    saveSkills(updatedSkills);
+    setNewSkill({ name: '', level: 50, category: 'Language' });
+    setShowAddForm(false);
+    
+    toast({
+      title: "Skill added",
+      description: "New skill has been added successfully",
+    });
   };
 
-  const handleDelete = (id: string) => {
-    try {
-      const updatedSkills = skills.filter(skill => skill.id !== id);
-      setSkills(updatedSkills);
-      localStorage.setItem('portfolio_skills', JSON.stringify(updatedSkills));
-      
-      toast({
-        title: "Skill deleted",
-        description: "The skill has been removed successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete skill",
-        variant: "destructive",
-      });
-    }
+  const handleDeleteSkill = (skillId: string) => {
+    const updatedSkills = skills.filter(skill => skill.id !== skillId);
+    saveSkills(updatedSkills);
+    
+    toast({
+      title: "Skill deleted",
+      description: "Skill has been removed successfully",
+    });
   };
 
-  const startEdit = (skill: Skill) => {
-    setEditingSkill(skill.id);
-    setName(skill.name);
-    setLevel(skill.level);
-  };
-
-  const cancelEdit = () => {
+  const handleUpdateSkill = (skillId: string, updates: Partial<Skill>) => {
+    const updatedSkills = skills.map(skill => 
+      skill.id === skillId ? { ...skill, ...updates } : skill
+    );
+    saveSkills(updatedSkills);
     setEditingSkill(null);
-    setName('');
-    setLevel(75);
+    
+    toast({
+      title: "Skill updated",
+      description: "Skill has been updated successfully",
+    });
   };
 
-  const saveEdit = () => {
-    try {
-      const updatedSkills = skills.map(skill => {
-        if (skill.id === editingSkill) {
-          return {
-            ...skill,
-            name,
-            level,
-          };
-        }
-        return skill;
-      });
-      
-      setSkills(updatedSkills);
-      localStorage.setItem('portfolio_skills', JSON.stringify(updatedSkills));
-      
-      toast({
-        title: "Skill updated",
-        description: "The skill has been updated successfully",
-      });
-      
-      cancelEdit();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update skill",
-        variant: "destructive",
-      });
-    }
-  };
+  const languageSkills = skills.filter(skill => skill.category === 'Language');
+  const frameworkSkills = skills.filter(skill => skill.category === 'Framework');
 
   return (
-    <div>
-      <Card className="shadow-lg mb-8">
-        <CardHeader>
-          <CardTitle className="text-xl text-gray-800">
-            {editingSkill ? 'Edit Skill' : 'Add New Skill'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={editingSkill ? (e) => { e.preventDefault(); saveEdit(); } : handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
+    <div className="animate-fade-in space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-800">Skills Management</h2>
+        <Button
+          onClick={() => setShowAddForm(true)}
+          className="bg-purple-600 hover:bg-purple-700 flex items-center gap-2"
+        >
+          <PlusCircle size={18} />
+          Add Skill
+        </Button>
+      </div>
+
+      {showAddForm && (
+        <Card className="shadow-lg animate-fade-in">
+          <CardHeader>
+            <CardTitle>Add New Skill</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
                 <Label htmlFor="skillName">Skill Name</Label>
                 <Input
                   id="skillName"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., React.js, UX Design, Node.js"
-                  required
+                  value={newSkill.name}
+                  onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })}
+                  placeholder="Enter skill name"
                 />
               </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <Label htmlFor="skillLevel">Skill Level</Label>
-                  <span className="text-sm font-medium">{level}%</span>
-                </div>
-                <Slider
-                  id="skillLevel"
-                  value={[level]}
-                  min={10}
-                  max={100}
-                  step={5}
-                  onValueChange={(value) => setLevel(value[0])}
-                  className="py-4"
-                />
+              <div>
+                <Label htmlFor="skillCategory">Category</Label>
+                <Select
+                  value={newSkill.category}
+                  onValueChange={(value) => setNewSkill({ ...newSkill, category: value as 'Language' | 'Framework' })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Language">Language</SelectItem>
+                    <SelectItem value="Framework">Framework</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             
-            <div className="flex gap-2">
-              {editingSkill ? (
-                <>
-                  <Button 
-                    type="button"
-                    onClick={saveEdit}
-                    className="bg-green-600 hover:bg-green-700 flex gap-1 items-center"
-                  >
-                    <Check size={18} /> Save Changes
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline"
-                    onClick={cancelEdit}
-                    className="flex gap-1 items-center"
-                  >
-                    <X size={18} /> Cancel
-                  </Button>
-                </>
-              ) : (
-                <Button 
-                  type="submit" 
-                  className="bg-purple-600 hover:bg-purple-700 flex gap-1 items-center"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Adding...' : 'Add Skill'} <PlusCircle size={18} />
-                </Button>
-              )}
+            <div>
+              <Label htmlFor="skillLevel">Proficiency Level: {newSkill.level}%</Label>
+              <input
+                type="range"
+                id="skillLevel"
+                min="0"
+                max="100"
+                value={newSkill.level}
+                onChange={(e) => setNewSkill({ ...newSkill, level: Number(e.target.value) })}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              />
             </div>
-          </form>
-        </CardContent>
-      </Card>
 
-      <h2 className="text-xl font-bold mb-4">Your Skills</h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {skills.map((skill) => (
-          <Card key={skill.id} className="p-4">
-            <CardContent className="p-2">
-              <div className="flex justify-between items-center mb-2">
-                <div>
-                  <h3 className="text-lg font-medium">{skill.name}</h3>
-                  <p className="text-purple-600 font-semibold">{skill.level}%</p>
+            <div className="flex gap-2">
+              <Button onClick={handleAddSkill} className="bg-green-600 hover:bg-green-700">
+                <Check size={16} className="mr-1" />
+                Add Skill
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowAddForm(false)}
+              >
+                <X size={16} className="mr-1" />
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              💻 Languages ({languageSkills.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {languageSkills.map((skill) => (
+              <div key={skill.id} className="space-y-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{skill.icon}</span>
+                    <span className="font-medium">{skill.name}</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingSkill(skill.id!)}
+                    >
+                      <Edit size={14} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteSkill(skill.id!)}
+                    >
+                      <Trash size={14} />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => startEdit(skill)}
-                    className="h-8 w-8 text-blue-600"
-                  >
-                    <Edit size={16} />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => handleDelete(skill.id)}
-                    className="h-8 w-8 text-red-600"
-                  >
-                    <Trash size={16} />
-                  </Button>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${skill.level}%` }}
+                  />
                 </div>
+                <div className="text-right text-sm text-gray-600">{skill.level}%</div>
               </div>
-              <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-purple-500 to-purple-700 rounded-full"
-                  style={{ width: `${skill.level}%` }}
-                />
+            ))}
+            {languageSkills.length === 0 && (
+              <p className="text-gray-500 text-center py-4">No languages added yet</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              🚀 Frameworks ({frameworkSkills.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {frameworkSkills.map((skill) => (
+              <div key={skill.id} className="space-y-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{skill.icon}</span>
+                    <span className="font-medium">{skill.name}</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingSkill(skill.id!)}
+                    >
+                      <Edit size={14} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteSkill(skill.id!)}
+                    >
+                      <Trash size={14} />
+                    </Button>
+                  </div>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${skill.level}%` }}
+                  />
+                </div>
+                <div className="text-right text-sm text-gray-600">{skill.level}%</div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            ))}
+            {frameworkSkills.length === 0 && (
+              <p className="text-gray-500 text-center py-4">No frameworks added yet</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
