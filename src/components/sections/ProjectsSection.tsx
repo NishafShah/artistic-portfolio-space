@@ -4,6 +4,7 @@ import ProjectCard from '../ProjectCard';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
+import { Settings } from 'lucide-react';
 
 interface Project {
   title: string;
@@ -54,6 +55,16 @@ const ProjectsSection = () => {
           <p className="text-gray-600 max-w-2xl mx-auto">
             Here are some of my recent projects that showcase my skills and expertise in web development.
           </p>
+          {isAuthenticated && (
+            <div className="mt-6">
+              <Link to="/dashboard">
+                <Button className="bg-purple-600 hover:bg-purple-700">
+                  <Settings className="w-5 h-5 mr-2" />
+                  Manage Projects
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -61,30 +72,6 @@ const ProjectsSection = () => {
             <ProjectCard key={index} {...project} />
           ))}
         </div>
-        
-        {isAuthenticated ? (
-          <div className="mt-12 text-center">
-            <Link to="/dashboard">
-              <Button className="bg-purple-600 hover:bg-purple-700">
-                Manage Projects
-              </Button>
-            </Link>
-          </div>
-        ) : (
-          <div className="mt-12 text-center">
-            <p className="text-gray-600 mb-4">Want to add your own projects?</p>
-            <Link to="/login">
-              <Button className="bg-purple-600 hover:bg-purple-700 mr-4">
-                Login
-              </Button>
-            </Link>
-            <Link to="/signup">
-              <Button variant="outline" className="border-purple-600 text-purple-600 hover:bg-purple-50">
-                Sign Up
-              </Button>
-            </Link>
-          </div>
-        )}
       </div>
     </section>
   );
