@@ -202,10 +202,12 @@ const CoursesSection = () => {
                   </div>
                 )}
                 
-                <Button className="w-full btn-primary group mt-6 text-lg py-4 font-bold shadow-xl">
-                  <Play className="w-5 h-5 mr-3 group-hover:scale-125 transition-transform duration-300" />
-                  View Course Details
-                </Button>
+                <Link to={`/course/${course.id}`}>
+                  <Button className="w-full btn-primary group mt-6 text-lg py-4 font-bold shadow-xl">
+                    <Play className="w-5 h-5 mr-3 group-hover:scale-125 transition-transform duration-300" />
+                    View Course Details
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           ))}

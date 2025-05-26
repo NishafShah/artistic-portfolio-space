@@ -1,6 +1,7 @@
 
 import { ChevronDown, Download, MessageCircle, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import EditableHeroStats from '@/components/EditableHeroStats';
 
 const HeroSection = () => {
   const handleHireMe = () => {
@@ -83,20 +84,7 @@ const HeroSection = () => {
           </div>
 
           {/* Stats */}
-          <div className="flex flex-wrap gap-8 justify-center lg:justify-start text-center">
-            <div className="group">
-              <div className="text-3xl font-black text-gradient">50+</div>
-              <div className="text-sm text-gray-600 font-medium">Projects Done</div>
-            </div>
-            <div className="group">
-              <div className="text-3xl font-black text-gradient-secondary">3+</div>
-              <div className="text-sm text-gray-600 font-medium">Years Experience</div>
-            </div>
-            <div className="group">
-              <div className="text-3xl font-black text-gradient">100%</div>
-              <div className="text-sm text-gray-600 font-medium">Client Satisfaction</div>
-            </div>
-          </div>
+          <EditableHeroStats />
         </div>
 
         {/* Right side - Image */}
