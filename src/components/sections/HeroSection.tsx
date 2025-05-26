@@ -1,9 +1,24 @@
 
-import { ChevronDown, Download, MessageCircle, Eye } from 'lucide-react';
+import { ChevronDown, Download, MessageCircle, Eye, Edit, Check, X, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import EditableHeroStats from '@/components/EditableHeroStats';
 
 const HeroSection = () => {
+  const { isAuthenticated } = useAuth();
+  const [heroImage, setHeroImage] = useState('https://images.unsplash.com/photo-1498050108023-c5249f4df085');
+  const [isEditingImage, setIsEditingImage] = useState(false);
+  const [tempImageUrl, setTempImageUrl] = useState('');
+
+  useEffect(() => {
+    const storedImage = localStorage.getItem('portfolio_hero_image');
+    if (storedImage) {
+      setHeroImage(storedImage);
+    }
+  }, []);
+
   const handleHireMe = () => {
     document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -22,6 +37,32 @@ const HeroSection = () => {
       link.download = 'Resume.pdf';
       link.click();
     }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setTempImageUrl(result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveImage = () => {
+    if (tempImageUrl) {
+      setHeroImage(tempImageUrl);
+      localStorage.setItem('portfolio_hero_image', tempImageUrl);
+    }
+    setIsEditingImage(false);
+    setTempImageUrl('');
+  };
+
+  const handleCancelImageEdit = () => {
+    setIsEditingImage(false);
+    setTempImageUrl('');
   };
 
   return (
@@ -93,19 +134,64 @@ const HeroSection = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-3xl blur-2xl opacity-25 group-hover:opacity-40 transition-opacity duration-500 transform group-hover:scale-110"></div>
             <div className="relative bg-white p-2 rounded-3xl shadow-2xl transform group-hover:scale-105 transition-all duration-500">
               <img 
-                src="https://images.unsplash.com/photo-1498050108023-c5249f4df085" 
-                alt="Developer coding on laptop"
+                src={heroImage}
+                alt="Developer workspace"
                 className="w-full max-w-lg mx-auto rounded-2xl shadow-xl"
               />
               <div className="absolute inset-2 bg-gradient-to-t from-black/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            </div>
-            
-            {/* Floating elements */}
-            <div className="absolute -top-4 -right-4 w-12 h-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl flex items-center justify-center animate-bounce-slow">
-              <span className="text-white text-xl">💻</span>
-            </div>
-            <div className="absolute -bottom-4 -left-4 w-12 h-12 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center animate-bounce-slow" style={{ animationDelay: '1s' }}>
-              <span className="text-white text-xl">🚀</span>
+              
+              {/* Image edit controls */}
+              {isAuthenticated && (
+                <div className="absolute top-4 right-4">
+                  {!isEditingImage ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsEditingImage(true)}
+                      className="bg-white/90 backdrop-blur-sm"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  ) : (
+                    <div className="flex gap-2 bg-white/90 backdrop-blur-sm rounded-lg p-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                        id="hero-image-upload"
+                      />
+                      <label htmlFor="hero-image-upload">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="cursor-pointer"
+                          asChild
+                        >
+                          <span>
+                            <Upload className="w-4 h-4" />
+                          </span>
+                        </Button>
+                      </label>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSaveImage}
+                        disabled={!tempImageUrl}
+                      >
+                        <Check className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancelImageEdit}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
