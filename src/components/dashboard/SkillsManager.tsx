@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -95,7 +96,7 @@ const SkillsManager = () => {
     window.dispatchEvent(new CustomEvent('skillsUpdated'));
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false, skillId?: string) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -126,6 +127,9 @@ const SkillsManager = () => {
         title: "Success!",
         description: "Image uploaded successfully",
       });
+      
+      // Clear the input
+      event.target.value = '';
     };
     
     reader.onerror = () => {
@@ -281,14 +285,17 @@ const SkillsManager = () => {
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => handleImageUpload(e)}
+                    onChange={(e) => handleImageUpload(e, false)}
                     className="hidden"
-                    id="skill-image-upload"
+                    id="new-skill-image-upload"
+                    key={`new-skill-upload-${Date.now()}`}
                   />
-                  <Label htmlFor="skill-image-upload" className="cursor-pointer">
-                    <Button type="button" variant="outline" disabled={uploadingImage}>
-                      <Upload size={16} className="mr-2" />
-                      {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                  <Label htmlFor="new-skill-image-upload" className="cursor-pointer">
+                    <Button type="button" variant="outline" disabled={uploadingImage} asChild>
+                      <span>
+                        <Upload size={16} className="mr-2" />
+                        {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                      </span>
                     </Button>
                   </Label>
                 </div>
@@ -348,13 +355,16 @@ const SkillsManager = () => {
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={(e) => handleImageUpload(e, true)}
+                          onChange={(e) => handleImageUpload(e, true, skill.id)}
                           className="hidden"
-                          id={`edit-image-${skill.id}`}
+                          id={`edit-image-lang-${skill.id}`}
+                          key={`edit-lang-${skill.id}-${Date.now()}`}
                         />
-                        <Label htmlFor={`edit-image-${skill.id}`} className="cursor-pointer">
-                          <Button type="button" variant="outline" size="sm">
-                            <Upload size={14} />
+                        <Label htmlFor={`edit-image-lang-${skill.id}`} className="cursor-pointer">
+                          <Button type="button" variant="outline" size="sm" asChild>
+                            <span>
+                              <Upload size={14} />
+                            </span>
                           </Button>
                         </Label>
                       </div>
@@ -443,13 +453,16 @@ const SkillsManager = () => {
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={(e) => handleImageUpload(e, true)}
+                          onChange={(e) => handleImageUpload(e, true, skill.id)}
                           className="hidden"
-                          id={`edit-image-${skill.id}`}
+                          id={`edit-image-frame-${skill.id}`}
+                          key={`edit-frame-${skill.id}-${Date.now()}`}
                         />
-                        <Label htmlFor={`edit-image-${skill.id}`} className="cursor-pointer">
-                          <Button type="button" variant="outline" size="sm">
-                            <Upload size={14} />
+                        <Label htmlFor={`edit-image-frame-${skill.id}`} className="cursor-pointer">
+                          <Button type="button" variant="outline" size="sm" asChild>
+                            <span>
+                              <Upload size={14} />
+                            </span>
                           </Button>
                         </Label>
                       </div>

@@ -210,17 +210,6 @@ const CoursesSection = () => {
             </Card>
           ))}
         </div>
-
-        <div className="text-center mt-20 animate-fade-in">
-          <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 rounded-3xl p-12 text-white shadow-2xl border-4 border-white/20 backdrop-blur-lg">
-            <h3 className="text-4xl font-heading font-black mb-6">Ready to Start Learning?</h3>
-            <p className="text-xl mb-8 opacity-90">Explore my courses and enhance your skills</p>
-            <Button className="bg-white text-purple-600 hover:bg-gray-100 font-bold text-xl px-10 py-4 rounded-full shadow-xl hover:scale-110 transition-all duration-300">
-              <BookOpen className="w-6 h-6 mr-3" />
-              Explore All Courses
-            </Button>
-          </div>
-        </div>
       </div>
     </section>
   );
