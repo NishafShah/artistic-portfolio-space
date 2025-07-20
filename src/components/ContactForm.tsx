@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mail, User, Send, Phone } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const ContactForm = () => {
   const [name, setName] = useState('');
@@ -32,20 +32,20 @@ const ContactForm = () => {
     }
 
     try {
-      // Store the message in localStorage
-      const messages = JSON.parse(localStorage.getItem('portfolio_messages') || '[]');
-      const newMessage = {
-        id: `msg_${Date.now()}`,
-        name,
-        email,
-        phone,
-        message,
-        sentTo: 'shahmurrawat@gmail.com',
-        date: new Date().toISOString(),
-      };
-      
-      messages.push(newMessage);
-      localStorage.setItem('portfolio_messages', JSON.stringify(messages));
+      // Save to Supabase database
+      const { error } = await supabase
+        .from('contact_submissions')
+        .insert([
+          {
+            name,
+            email,
+            message
+          }
+        ]);
+
+      if (error) {
+        throw error;
+      }
       
       // Show success message
       toast({
@@ -60,6 +60,7 @@ const ContactForm = () => {
       setPhone('');
       setMessage('');
     } catch (error) {
+      console.error('Error saving contact form:', error);
       toast({
         title: "Error",
         description: "Failed to send your message. Please try again later.",
