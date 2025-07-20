@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, Trash, Edit, Check, X, Upload, Image } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { supabase } from '@/integrations/supabase/client';
 
 interface Project {
   id: string;
@@ -35,9 +36,30 @@ const ProjectsManager = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load existing projects
-    const storedProjects = JSON.parse(localStorage.getItem('portfolio_projects') || '[]');
-    setProjects(storedProjects);
+    // Load existing projects from Supabase
+    const loadProjects = async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('order_index', { ascending: true });
+      
+      if (error) {
+        console.error('Error loading projects:', error);
+      } else {
+        const formattedProjects = data.map(project => ({
+          id: project.id,
+          title: project.title,
+          description: project.description,
+          technologies: project.technologies,
+          imageUrl: project.image_url || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085',
+          liveUrl: project.live_url,
+          githubUrl: project.github_url,
+        }));
+        setProjects(formattedProjects);
+      }
+    };
+    
+    loadProjects();
   }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,31 +94,43 @@ const ProjectsManager = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // Get existing projects
-      const storedProjects = JSON.parse(localStorage.getItem('portfolio_projects') || '[]');
-      
-      // Add new project
+      // Add new project to Supabase
+      const { data, error } = await supabase
+        .from('projects')
+        .insert([
+          {
+            title,
+            description,
+            technologies: technologies.split(',').map((tech) => tech.trim()),
+            image_url: imageUrl || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085',
+            live_url: liveUrl,
+            github_url: githubUrl,
+            order_index: projects.length,
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
       const newProject = {
-        id: `project_${Date.now()}`,
-        title,
-        description,
-        technologies: technologies.split(',').map((tech) => tech.trim()),
-        imageUrl: imageUrl || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085',
-        liveUrl,
-        githubUrl,
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        technologies: data.technologies,
+        imageUrl: data.image_url,
+        liveUrl: data.live_url,
+        githubUrl: data.github_url,
       };
       
-      storedProjects.push(newProject);
-      
-      // Save back to localStorage
-      localStorage.setItem('portfolio_projects', JSON.stringify(storedProjects));
-      
-      setProjects(storedProjects);
+      setProjects([...projects, newProject]);
       
       toast({
         title: "Project added",
@@ -115,6 +149,7 @@ const ProjectsManager = () => {
         fileInputRef.current.value = '';
       }
     } catch (error) {
+      console.error('Error adding project:', error);
       toast({
         title: "Error",
         description: "Failed to add project",
@@ -125,17 +160,26 @@ const ProjectsManager = () => {
     }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
       const updatedProjects = projects.filter(project => project.id !== id);
       setProjects(updatedProjects);
-      localStorage.setItem('portfolio_projects', JSON.stringify(updatedProjects));
       
       toast({
         title: "Project deleted",
         description: "The project has been removed successfully",
       });
     } catch (error) {
+      console.error('Error deleting project:', error);
       toast({
         title: "Error",
         description: "Failed to delete project",
@@ -169,8 +213,24 @@ const ProjectsManager = () => {
     }
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     try {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          title,
+          description,
+          technologies: technologies.split(',').map(tech => tech.trim()),
+          image_url: imageUrl,
+          live_url: liveUrl,
+          github_url: githubUrl,
+        })
+        .eq('id', editingProject);
+
+      if (error) {
+        throw error;
+      }
+
       const updatedProjects = projects.map(project => {
         if (project.id === editingProject) {
           return {
@@ -187,7 +247,6 @@ const ProjectsManager = () => {
       });
       
       setProjects(updatedProjects);
-      localStorage.setItem('portfolio_projects', JSON.stringify(updatedProjects));
       
       toast({
         title: "Project updated",
@@ -196,6 +255,7 @@ const ProjectsManager = () => {
       
       cancelEdit();
     } catch (error) {
+      console.error('Error updating project:', error);
       toast({
         title: "Error",
         description: "Failed to update project",
