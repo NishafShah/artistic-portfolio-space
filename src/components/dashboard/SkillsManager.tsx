@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash, Edit, Check, X, Code, Zap, Upload, Image } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Skill {
   id?: string;
@@ -68,30 +69,46 @@ const SkillsManager = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const storedSkills = JSON.parse(localStorage.getItem('portfolio_skills') || '[]');
+    const loadSkills = async () => {
+      const { data, error } = await supabase
+        .from('skills')
+        .select('*')
+        .order('order_index', { ascending: true });
+      
+      if (error) {
+        console.error('Error loading skills:', error);
+        // Load default skills if none exist
+        if (error.code === 'PGRST116') {
+          const defaultSkills: Skill[] = [
+            { name: 'JavaScript', level: 95, category: 'Language' as const, icon: '🟨' },
+            { name: 'React', level: 90, category: 'Framework' as const, icon: '⚛️' },
+            { name: 'TypeScript', level: 85, category: 'Language' as const, icon: '🔷' },
+            { name: 'Node.js', level: 80, category: 'Framework' as const, icon: '💚' },
+            { name: 'Python', level: 88, category: 'Language' as const, icon: '🐍' },
+            { name: 'HTML', level: 95, category: 'Language' as const, icon: '🌐' },
+            { name: 'CSS', level: 90, category: 'Language' as const, icon: '🎨' },
+            { name: 'Next.js', level: 85, category: 'Framework' as const, icon: '▲' },
+          ];
+          setSkills(defaultSkills);
+        }
+      } else {
+        const formattedSkills = data.map(skill => ({
+          id: skill.id,
+          name: skill.name,
+          level: skill.level,
+          category: skill.category as 'Language' | 'Framework',
+          icon: skill.icon,
+          imageUrl: skill.image_url,
+        }));
+        setSkills(formattedSkills);
+      }
+    };
     
-    if (storedSkills.length === 0) {
-      const defaultSkills: Skill[] = [
-        { id: '1', name: 'JavaScript', level: 95, category: 'Language' as const, icon: '🟨' },
-        { id: '2', name: 'React', level: 90, category: 'Framework' as const, icon: '⚛️' },
-        { id: '3', name: 'TypeScript', level: 85, category: 'Language' as const, icon: '🔷' },
-        { id: '4', name: 'Node.js', level: 80, category: 'Framework' as const, icon: '💚' },
-        { id: '5', name: 'Python', level: 88, category: 'Language' as const, icon: '🐍' },
-        { id: '6', name: 'HTML', level: 95, category: 'Language' as const, icon: '🌐' },
-        { id: '7', name: 'CSS', level: 90, category: 'Language' as const, icon: '🎨' },
-        { id: '8', name: 'Next.js', level: 85, category: 'Framework' as const, icon: '▲' },
-      ];
-      setSkills(defaultSkills);
-      localStorage.setItem('portfolio_skills', JSON.stringify(defaultSkills));
-    } else {
-      setSkills(storedSkills);
-    }
+    loadSkills();
   }, []);
 
-  const saveSkills = (updatedSkills: Skill[]) => {
-    localStorage.setItem('portfolio_skills', JSON.stringify(updatedSkills));
+  const saveSkills = async (updatedSkills: Skill[]) => {
     setSkills(updatedSkills);
-    
     // Dispatch custom event to notify SkillsSection
     window.dispatchEvent(new CustomEvent('skillsUpdated'));
   };
@@ -144,7 +161,7 @@ const SkillsManager = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleAddSkill = () => {
+  const handleAddSkill = async () => {
     if (!newSkill.name) {
       toast({
         title: "Error",
@@ -154,31 +171,76 @@ const SkillsManager = () => {
       return;
     }
 
-    const skillWithIcon = {
-      ...newSkill,
-      id: `skill_${Date.now()}`,
-      icon: newSkill.imageUrl ? undefined : (defaultSkillIcons[newSkill.name as keyof typeof defaultSkillIcons] || (newSkill.category === 'Language' ? '💻' : '🔧')),
-    };
+    try {
+      const skillData = {
+        name: newSkill.name,
+        level: newSkill.level,
+        category: newSkill.category,
+        icon: newSkill.imageUrl ? undefined : (defaultSkillIcons[newSkill.name as keyof typeof defaultSkillIcons] || (newSkill.category === 'Language' ? '💻' : '🔧')),
+        image_url: newSkill.imageUrl,
+        order_index: skills.length,
+      };
 
-    const updatedSkills = [...skills, skillWithIcon];
-    saveSkills(updatedSkills);
-    setNewSkill({ name: '', level: 50, category: 'Language' });
-    setShowAddForm(false);
-    
-    toast({
-      title: "Success!",
-      description: "New skill has been added successfully",
-    });
+      const { data, error } = await supabase
+        .from('skills')
+        .insert([skillData])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newSkillWithId = {
+        id: data.id,
+        name: data.name,
+        level: data.level,
+        category: data.category as 'Language' | 'Framework',
+        icon: data.icon,
+        imageUrl: data.image_url,
+      };
+
+      const updatedSkills = [...skills, newSkillWithId];
+      await saveSkills(updatedSkills);
+      setNewSkill({ name: '', level: 50, category: 'Language' });
+      setShowAddForm(false);
+      
+      toast({
+        title: "Success!",
+        description: "New skill has been added successfully",
+      });
+    } catch (error) {
+      console.error('Error adding skill:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add skill",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteSkill = (skillId: string) => {
-    const updatedSkills = skills.filter(skill => skill.id !== skillId);
-    saveSkills(updatedSkills);
-    
-    toast({
-      title: "Deleted",
-      description: "Skill has been removed successfully",
-    });
+  const handleDeleteSkill = async (skillId: string) => {
+    try {
+      const { error } = await supabase
+        .from('skills')
+        .delete()
+        .eq('id', skillId);
+
+      if (error) throw error;
+
+      const updatedSkills = skills.filter(skill => skill.id !== skillId);
+      await saveSkills(updatedSkills);
+      
+      toast({
+        title: "Deleted",
+        description: "Skill has been removed successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting skill:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete skill",
+        variant: "destructive",
+      });
+    }
   };
 
   const startEdit = (skill: Skill) => {
@@ -191,21 +253,44 @@ const SkillsManager = () => {
     setEditData({ name: '', level: 50, category: 'Language' });
   };
 
-  const saveEdit = () => {
-    const updatedSkills = skills.map(skill => 
-      skill.id === editingSkill ? {
-        ...editData,
-        icon: editData.imageUrl ? undefined : (defaultSkillIcons[editData.name as keyof typeof defaultSkillIcons] || (editData.category === 'Language' ? '💻' : '🔧'))
-      } : skill
-    );
-    saveSkills(updatedSkills);
-    setEditingSkill(null);
-    setEditData({ name: '', level: 50, category: 'Language' });
-    
-    toast({
-      title: "Updated!",
-      description: "Skill has been updated successfully",
-    });
+  const saveEdit = async () => {
+    try {
+      const { error } = await supabase
+        .from('skills')
+        .update({
+          name: editData.name,
+          level: editData.level,
+          category: editData.category,
+          icon: editData.imageUrl ? undefined : (defaultSkillIcons[editData.name as keyof typeof defaultSkillIcons] || (editData.category === 'Language' ? '💻' : '🔧')),
+          image_url: editData.imageUrl,
+        })
+        .eq('id', editingSkill);
+
+      if (error) throw error;
+
+      const updatedSkills = skills.map(skill => 
+        skill.id === editingSkill ? {
+          ...editData,
+          id: skill.id,
+          icon: editData.imageUrl ? undefined : (defaultSkillIcons[editData.name as keyof typeof defaultSkillIcons] || (editData.category === 'Language' ? '💻' : '🔧'))
+        } : skill
+      );
+      await saveSkills(updatedSkills);
+      setEditingSkill(null);
+      setEditData({ name: '', level: 50, category: 'Language' });
+      
+      toast({
+        title: "Updated!",
+        description: "Skill has been updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating skill:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update skill",
+        variant: "destructive",
+      });
+    }
   };
 
   const languageSkills = skills.filter(skill => skill.category === 'Language');

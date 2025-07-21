@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash, Edit, Check, X, Upload } from 'lucide-react';
 import { Course, CourseModule } from '@/types/course';
+import { supabase } from '@/integrations/supabase/client';
 
 const CoursesManager = () => {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -25,16 +25,69 @@ const CoursesManager = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const storedCourses = JSON.parse(localStorage.getItem('portfolio_courses') || '[]');
-    setCourses(storedCourses);
+    const loadCourses = async () => {
+      const { data: coursesData, error: coursesError } = await supabase
+        .from('courses')
+        .select('*')
+        .order('order_index', { ascending: true });
+      
+      if (coursesError) {
+        console.error('Error loading courses:', coursesError);
+        return;
+      }
+
+      // Load modules for each course
+      const coursesWithModules = await Promise.all(
+        coursesData.map(async (course) => {
+          const { data: modulesData, error: modulesError } = await supabase
+            .from('course_modules')
+            .select('*')
+            .eq('course_id', course.id)
+            .order('order_index', { ascending: true });
+
+          if (modulesError) {
+            console.error('Error loading modules:', modulesError);
+            return {
+              id: course.id,
+              title: course.title,
+              description: course.description,
+              duration: course.duration || '4 weeks',
+              level: course.level as 'Beginner' | 'Intermediate' | 'Advanced',
+              modules: [],
+              price: course.price || 0,
+              createdAt: course.created_at,
+            };
+          }
+
+          return {
+            id: course.id,
+            title: course.title,
+            description: course.description,
+            duration: course.duration || '4 weeks',
+            level: course.level as 'Beginner' | 'Intermediate' | 'Advanced',
+            modules: modulesData.map(module => ({
+              id: module.id,
+              title: module.title,
+              duration: module.duration || '1 hour',
+              description: '',
+              completed: false,
+            })),
+            price: course.price || 0,
+            createdAt: course.created_at,
+            image: course.image_url,
+            instructor: course.instructor,
+            tags: course.tags || [],
+          };
+        })
+      );
+
+      setCourses(coursesWithModules);
+    };
+    
+    loadCourses();
   }, []);
 
-  const saveCourses = (updatedCourses: Course[]) => {
-    localStorage.setItem('portfolio_courses', JSON.stringify(updatedCourses));
-    setCourses(updatedCourses);
-  };
-
-  const handleAddCourse = () => {
+  const handleAddCourse = async () => {
     if (!newCourse.title || !newCourse.description) {
       toast({
         title: "Error",
@@ -44,64 +97,180 @@ const CoursesManager = () => {
       return;
     }
 
-    const course: Course = {
-      id: `course_${Date.now()}`,
-      title: newCourse.title!,
-      description: newCourse.description!,
-      duration: newCourse.duration || '4 weeks',
-      level: newCourse.level as 'Beginner' | 'Intermediate' | 'Advanced',
-      modules: [],
-      price: newCourse.price || 0,
-      image: newCourse.image,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const { data: courseData, error: courseError } = await supabase
+        .from('courses')
+        .insert([{
+          title: newCourse.title,
+          description: newCourse.description,
+          duration: newCourse.duration || '4 weeks',
+          level: newCourse.level,
+          price: newCourse.price || 0,
+          image_url: newCourse.image,
+          instructor: newCourse.instructor,
+          tags: newCourse.tags || [],
+          order_index: courses.length,
+        }])
+        .select()
+        .single();
 
-    const updatedCourses = [...courses, course];
-    saveCourses(updatedCourses);
-    setNewCourse({ title: '', description: '', duration: '', level: 'Beginner', modules: [], price: 0 });
-    setShowAddForm(false);
-    
-    toast({
-      title: "Course added",
-      description: "New course has been created successfully",
-    });
+      if (courseError) throw courseError;
+
+      // Add modules if any
+      if (newCourse.modules && newCourse.modules.length > 0) {
+        const modulesData = newCourse.modules.map((module, index) => ({
+          course_id: courseData.id,
+          title: module.title,
+          duration: module.duration,
+          order_index: index,
+        }));
+
+        const { error: modulesError } = await supabase
+          .from('course_modules')
+          .insert(modulesData);
+
+        if (modulesError) throw modulesError;
+      }
+
+      const newCourseWithModules: Course = {
+        id: courseData.id,
+        title: courseData.title,
+        description: courseData.description,
+        duration: courseData.duration || '4 weeks',
+        level: courseData.level as 'Beginner' | 'Intermediate' | 'Advanced',
+        modules: newCourse.modules || [],
+        price: courseData.price || 0,
+        createdAt: courseData.created_at,
+        image: courseData.image_url,
+        instructor: courseData.instructor,
+        tags: courseData.tags || [],
+      };
+
+      setCourses([...courses, newCourseWithModules]);
+      setNewCourse({
+        title: '',
+        description: '',
+        duration: '',
+        level: 'Beginner',
+        modules: [],
+        price: 0,
+      });
+      setShowAddForm(false);
+
+      toast({
+        title: "Course added",
+        description: "Your course has been added successfully",
+      });
+    } catch (error) {
+      console.error('Error adding course:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add course",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteCourse = (courseId: string) => {
-    const updatedCourses = courses.filter(course => course.id !== courseId);
-    saveCourses(updatedCourses);
-    
-    toast({
-      title: "Course deleted",
-      description: "Course has been removed successfully",
-    });
+  const handleDeleteCourse = async (courseId: string) => {
+    try {
+      // Delete course (modules will be deleted automatically due to CASCADE)
+      const { error } = await supabase
+        .from('courses')
+        .delete()
+        .eq('id', courseId);
+
+      if (error) throw error;
+
+      const updatedCourses = courses.filter(course => course.id !== courseId);
+      setCourses(updatedCourses);
+      
+      toast({
+        title: "Course deleted",
+        description: "The course has been removed successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting course:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete course",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleAddModule = (courseId: string) => {
-    const updatedCourses = courses.map(course => {
-      if (course.id === courseId) {
-        const newModule: CourseModule = {
-          id: `module_${Date.now()}`,
+  const handleAddModule = async (courseId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('course_modules')
+        .insert([{
+          course_id: courseId,
           title: 'New Module',
-          description: 'Module description',
           duration: '1 hour',
-          completed: false,
-        };
-        return { ...course, modules: [...course.modules, newModule] };
-      }
-      return course;
-    });
-    saveCourses(updatedCourses);
+          order_index: courses.find(c => c.id === courseId)?.modules.length || 0,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const updatedCourses = courses.map(course => {
+        if (course.id === courseId) {
+          const newModule: CourseModule = {
+            id: data.id,
+            title: data.title,
+            description: '',
+            duration: data.duration || '1 hour',
+            completed: false,
+          };
+          return { ...course, modules: [...course.modules, newModule] };
+        }
+        return course;
+      });
+      setCourses(updatedCourses);
+
+      toast({
+        title: "Module added",
+        description: "New module has been added to the course",
+      });
+    } catch (error) {
+      console.error('Error adding module:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add module",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteModule = (courseId: string, moduleId: string) => {
-    const updatedCourses = courses.map(course => {
-      if (course.id === courseId) {
-        return { ...course, modules: course.modules.filter(module => module.id !== moduleId) };
-      }
-      return course;
-    });
-    saveCourses(updatedCourses);
+  const handleDeleteModule = async (courseId: string, moduleId: string) => {
+    try {
+      const { error } = await supabase
+        .from('course_modules')
+        .delete()
+        .eq('id', moduleId);
+
+      if (error) throw error;
+
+      const updatedCourses = courses.map(course => {
+        if (course.id === courseId) {
+          return { ...course, modules: course.modules.filter(module => module.id !== moduleId) };
+        }
+        return course;
+      });
+      setCourses(updatedCourses);
+
+      toast({
+        title: "Module deleted",
+        description: "Module has been removed from the course",
+      });
+    } catch (error) {
+      console.error('Error deleting module:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete module",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>, courseId?: string) => {
@@ -120,10 +289,12 @@ const CoursesManager = () => {
     const imageUrl = URL.createObjectURL(file);
     
     if (courseId) {
+      // Update existing course image would need Supabase Storage implementation
+      // For now, just update local state
       const updatedCourses = courses.map(course => 
         course.id === courseId ? { ...course, image: imageUrl } : course
       );
-      saveCourses(updatedCourses);
+      setCourses(updatedCourses);
     } else {
       setNewCourse({ ...newCourse, image: imageUrl });
     }

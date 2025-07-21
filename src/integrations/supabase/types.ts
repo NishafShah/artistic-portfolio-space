@@ -110,6 +110,86 @@ export type Database = {
         }
         Relationships: []
       }
+      course_modules: {
+        Row: {
+          course_id: string
+          created_at: string
+          duration: string | null
+          id: string
+          order_index: number | null
+          title: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          duration?: string | null
+          id?: string
+          order_index?: number | null
+          title: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          duration?: string | null
+          id?: string
+          order_index?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_modules_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courses: {
+        Row: {
+          created_at: string
+          description: string
+          duration: string | null
+          id: string
+          image_url: string | null
+          instructor: string | null
+          level: string
+          order_index: number | null
+          price: number | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          duration?: string | null
+          id?: string
+          image_url?: string | null
+          instructor?: string | null
+          level: string
+          order_index?: number | null
+          price?: number | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          duration?: string | null
+          id?: string
+          image_url?: string | null
+          instructor?: string | null
+          level?: string
+          order_index?: number | null
+          price?: number | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

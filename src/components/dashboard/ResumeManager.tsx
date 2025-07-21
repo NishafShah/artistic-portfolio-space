@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, Download } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const ResumeManager = () => {
   const [uploadingResume, setUploadingResume] = useState(false);
@@ -14,20 +15,33 @@ const ResumeManager = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Check if there's a stored resume name
-    const storedResumeName = localStorage.getItem('portfolio_resume_name');
-    if (storedResumeName) {
-      setResumeName(storedResumeName);
-    }
+    // Check if there's a resume in Supabase Storage
+    const loadResume = async () => {
+      const { data: files, error } = await supabase
+        .storage
+        .from('project-images')
+        .list('resumes', {
+          limit: 1,
+          sortBy: { column: 'created_at', order: 'desc' }
+        });
 
-    // Check if there's a stored resume URL
-    const storedResumeUrl = localStorage.getItem('portfolio_resume_url');
-    if (storedResumeUrl) {
-      setResumeUrl(storedResumeUrl);
-    }
+      if (!error && files && files.length > 0) {
+        const file = files[0];
+        setResumeName(file.name);
+        
+        const { data } = supabase
+          .storage
+          .from('project-images')
+          .getPublicUrl(`resumes/${file.name}`);
+        
+        setResumeUrl(data.publicUrl);
+      }
+    };
+
+    loadResume();
   }, []);
 
-  const handleResumeUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleResumeUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     
     if (!file) {
@@ -42,26 +56,55 @@ const ResumeManager = () => {
       });
       return;
     }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload a file smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setUploadingResume(true);
-    setResumeName(file.name);
-    setResumeFile(file);
     
-    // Create a URL for the file
-    const fileUrl = URL.createObjectURL(file);
-    setResumeUrl(fileUrl);
-    
-    // Store in localStorage
-    localStorage.setItem('portfolio_resume_name', file.name);
-    localStorage.setItem('portfolio_resume_url', fileUrl);
-    
-    setTimeout(() => {
+    try {
+      // Upload to Supabase Storage
+      const fileName = `resume_${Date.now()}.pdf`;
+      const { data, error } = await supabase
+        .storage
+        .from('project-images')
+        .upload(`resumes/${fileName}`, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: urlData } = supabase
+        .storage
+        .from('project-images')
+        .getPublicUrl(`resumes/${fileName}`);
+
+      setResumeName(file.name);
+      setResumeFile(file);
+      setResumeUrl(urlData.publicUrl);
+      
       toast({
         title: "Resume uploaded",
         description: "Your resume has been uploaded successfully",
       });
+    } catch (error) {
+      console.error('Error uploading resume:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload resume. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setUploadingResume(false);
-    }, 1500);
+    }
   };
 
   const handleDownload = () => {

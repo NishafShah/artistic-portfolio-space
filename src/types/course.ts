@@ -8,6 +8,8 @@ export interface Course {
   modules: CourseModule[];
   price: number;
   image?: string;
+  instructor?: string;
+  tags?: string[];
   createdAt: string;
 }
 

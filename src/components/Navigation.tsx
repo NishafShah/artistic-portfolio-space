@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, Code, Briefcase, Settings, BookOpen, MessageSquare, LogIn, LogOut, LayoutDashboard } from 'lucide-react';
+import { Menu, X, User, GraduationCap, Briefcase, Settings, BookOpen, MessageSquare, LogIn, LogOut, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Navigation = () => {
@@ -43,7 +43,7 @@ const Navigation = () => {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-20">
         <div className="flex-shrink-0 group">
           <Link to="/" className="flex items-center space-x-3 text-2xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent group-hover:scale-105 transition-transform duration-300">
-            <Code className="w-8 h-8 text-purple-600 group-hover:rotate-12 transition-transform duration-300" />
+            <GraduationCap className="w-8 h-8 text-purple-600 group-hover:rotate-12 transition-transform duration-300" />
             <span className="font-extrabold tracking-tight">Portfolio</span>
           </Link>
         </div>
