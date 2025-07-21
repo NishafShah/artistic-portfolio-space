@@ -1,8 +1,13 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Upload, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -14,93 +19,96 @@ const ResumeManager = () => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    // Check if there's a resume in Supabase Storage
-    const loadResume = async () => {
-      const { data: files, error } = await supabase
+  // ✅ Load the most recently uploaded resume using localStorage fallback
+  const loadResume = async () => {
+    const latestFileName = localStorage.getItem('latestResumeName');
+
+    if (latestFileName) {
+      const { data } = supabase
         .storage
+        .from('project-images')
+        .getPublicUrl(`resumes/${latestFileName}`);
+
+      setResumeName(latestFileName);
+      setResumeUrl(`${data.publicUrl}?t=${Date.now()}`);
+    } else {
+      // Fallback to latest from list if no localStorage
+      const { data: files, error } = await supabase.storage
         .from('project-images')
         .list('resumes', {
           limit: 1,
-          sortBy: { column: 'created_at', order: 'desc' }
+          sortBy: { column: 'name', order: 'desc' },
         });
 
       if (!error && files && files.length > 0) {
         const file = files[0];
         setResumeName(file.name);
-        
-        const { data } = supabase
-          .storage
+
+        const { data } = supabase.storage
           .from('project-images')
           .getPublicUrl(`resumes/${file.name}`);
-        
-        setResumeUrl(data.publicUrl);
-      }
-    };
 
+        setResumeUrl(`${data.publicUrl}?t=${Date.now()}`);
+      }
+    }
+  };
+
+  useEffect(() => {
     loadResume();
   }, []);
 
-  const handleResumeUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleResumeUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
-    
-    if (!file) {
-      return;
-    }
-    
+    if (!file) return;
+
     if (file.type !== 'application/pdf') {
       toast({
-        title: "Invalid file type",
-        description: "Please upload a PDF file",
-        variant: "destructive",
+        title: 'Invalid file type',
+        description: 'Please upload a PDF file',
+        variant: 'destructive',
       });
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
       toast({
-        title: "File too large",
-        description: "Please upload a file smaller than 5MB",
-        variant: "destructive",
+        title: 'File too large',
+        description: 'Please upload a file smaller than 5MB',
+        variant: 'destructive',
       });
       return;
     }
-    
+
     setUploadingResume(true);
-    
+
     try {
-      // Upload to Supabase Storage
       const fileName = `resume_${Date.now()}.pdf`;
-      const { data, error } = await supabase
-        .storage
+
+      const { error } = await supabase.storage
         .from('project-images')
         .upload(`resumes/${fileName}`, file, {
           cacheControl: '3600',
-          upsert: true
+          upsert: true,
         });
 
       if (error) throw error;
 
-      // Get public URL
-      const { data: urlData } = supabase
-        .storage
-        .from('project-images')
-        .getPublicUrl(`resumes/${fileName}`);
-
-      setResumeName(file.name);
+      localStorage.setItem('latestResumeName', fileName);
+      await loadResume(); // refresh display
       setResumeFile(file);
-      setResumeUrl(urlData.publicUrl);
-      
+
       toast({
-        title: "Resume uploaded",
-        description: "Your resume has been uploaded successfully",
+        title: 'Resume uploaded',
+        description: 'Your resume has been uploaded successfully',
       });
     } catch (error) {
-      console.error('Error uploading resume:', error);
+      console.error('Upload error:', error);
       toast({
-        title: "Upload failed",
-        description: "Failed to upload resume. Please try again.",
-        variant: "destructive",
+        title: 'Upload failed',
+        description: 'Failed to upload resume. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setUploadingResume(false);
@@ -109,31 +117,30 @@ const ResumeManager = () => {
 
   const handleDownload = () => {
     if (resumeUrl) {
-      // Create a link to the resume PDF and trigger download
       const link = document.createElement('a');
       link.href = resumeUrl;
       link.download = resumeName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       toast({
-        title: "Resume download started",
-        description: "Your resume is being downloaded",
+        title: 'Resume download started',
+        description: 'Your resume is being downloaded',
       });
     } else {
       toast({
-        title: "No resume available",
-        description: "Please upload a resume first",
-        variant: "destructive",
+        title: 'No resume available',
+        description: 'Please upload a resume first',
+        variant: 'destructive',
       });
     }
   };
 
   const handleSaveChanges = () => {
     toast({
-      title: "Changes saved",
-      description: "Your resume has been updated successfully",
+      title: 'Changes saved',
+      description: 'Your resume has been updated successfully',
     });
   };
 
@@ -147,6 +154,7 @@ const ResumeManager = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Upload Section */}
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center transition-all duration-300 hover:border-purple-400">
             <input
               type="file"
@@ -161,19 +169,22 @@ const ResumeManager = () => {
               className="flex flex-col items-center justify-center cursor-pointer"
             >
               <Upload className="h-12 w-12 text-gray-400 mb-2 animate-bounce" />
-              <p className="text-lg font-medium text-gray-700 mb-1">Click to upload your resume</p>
+              <p className="text-lg font-medium text-gray-700 mb-1">
+                Click to upload your resume
+              </p>
               <p className="text-sm text-gray-500">PDF (max 5MB)</p>
             </label>
           </div>
 
+          {/* Download Section */}
           <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg transition-all duration-300 hover:bg-gray-100">
             <div>
               <h3 className="font-medium">Current Resume</h3>
               <p className="text-sm text-gray-500">{resumeName}</p>
             </div>
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="flex items-center gap-1 transition-transform hover:scale-105"
                 onClick={handleDownload}
                 disabled={!resumeUrl}
@@ -183,8 +194,9 @@ const ResumeManager = () => {
             </div>
           </div>
 
+          {/* Save Button */}
           <div className="pt-4">
-            <Button 
+            <Button
               disabled={uploadingResume}
               className="bg-purple-600 hover:bg-purple-700 w-full transition-all duration-300 hover:scale-[1.02]"
               onClick={handleSaveChanges}

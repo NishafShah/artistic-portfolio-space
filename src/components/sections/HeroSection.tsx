@@ -1,22 +1,62 @@
-
-import { ChevronDown, Download, MessageCircle, Eye, Edit, Check, X, Upload } from 'lucide-react';
+import {
+  ChevronDown,
+  Download,
+  MessageCircle,
+  Eye,
+  Edit,
+  Check,
+  X,
+  Upload,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import EditableHeroStats from '@/components/EditableHeroStats';
+import { supabase } from '@/integrations/supabase/client';
 
 const HeroSection = () => {
   const { isAuthenticated } = useAuth();
-  const [heroImage, setHeroImage] = useState('https://images.unsplash.com/photo-1498050108023-c5249f4df085');
+  const [heroImage, setHeroImage] = useState(
+    'https://images.unsplash.com/photo-1498050108023-c5249f4df085'
+  );
   const [isEditingImage, setIsEditingImage] = useState(false);
   const [tempImageUrl, setTempImageUrl] = useState('');
 
+  const [resumeUrl, setResumeUrl] = useState<string | null>(null);
+  const [resumeName, setResumeName] = useState<string>('Resume.pdf');
+
+  // 🔄 Fetch resume from Supabase on mount
   useEffect(() => {
     const storedImage = localStorage.getItem('portfolio_hero_image');
     if (storedImage) {
       setHeroImage(storedImage);
     }
+
+    const fetchResumeFromSupabase = async () => {
+      const { data, error } = await supabase.storage
+        .from('project-images')
+        .list('resumes', {
+          limit: 1,
+          sortBy: { column: 'created_at', order: 'desc' },
+        });
+
+      if (error || !data || data.length === 0) {
+        console.warn('No resume found in Supabase:', error);
+        return;
+      }
+
+      const latest = data[0];
+      setResumeName(latest.name);
+
+      const { data: publicData } = supabase.storage
+        .from('project-images')
+        .getPublicUrl(`resumes/${latest.name}`);
+
+      setResumeUrl(`${publicData.publicUrl}?t=${Date.now()}`);
+    };
+
+    fetchResumeFromSupabase();
   }, []);
 
   const handleHireMe = () => {
@@ -24,19 +64,13 @@ const HeroSection = () => {
   };
 
   const handleDownloadResume = () => {
-    const resumeData = localStorage.getItem('portfolio_resume');
-    if (resumeData) {
-      const link = document.createElement('a');
-      link.href = resumeData;
-      link.download = 'Resume.pdf';
-      link.click();
-    } else {
-      // Fallback to default resume
-      const link = document.createElement('a');
-      link.href = '/resume.pdf';
-      link.download = 'Resume.pdf';
-      link.click();
-    }
+    if (!resumeUrl) return;
+    const link = document.createElement('a');
+    link.href = resumeUrl;
+    link.download = resumeName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,14 +100,23 @@ const HeroSection = () => {
   };
 
   return (
-    <section id="home" className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 px-4 relative overflow-hidden">
+    <section
+      id="home"
+      className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 px-4 relative overflow-hidden"
+    >
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-float"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-float" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute top-40 left-1/2 w-80 h-80 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-float" style={{ animationDelay: '4s' }}></div>
+        <div
+          className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-float"
+          style={{ animationDelay: '2s' }}
+        ></div>
+        <div
+          className="absolute top-40 left-1/2 w-80 h-80 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-float"
+          style={{ animationDelay: '4s' }}
+        ></div>
       </div>
-      
+
       <div className="flex flex-col lg:flex-row items-center justify-between max-w-7xl mx-auto relative z-10 gap-12">
         {/* Left side - Content */}
         <div className="text-center lg:text-left lg:flex-1 lg:pr-8">
@@ -81,7 +124,7 @@ const HeroSection = () => {
             <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
             Welcome to my digital space
           </div>
-          
+
           <h1 className="text-5xl md:text-7xl font-heading font-black text-gray-800 mb-6 leading-tight">
             Hello, I'm{' '}
             <span className="text-gradient animate-gradient relative">
@@ -89,31 +132,28 @@ const HeroSection = () => {
               <div className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
             </span>
           </h1>
-          
+
           <p className="text-xl md:text-2xl text-gray-600 mb-8 leading-relaxed font-primary">
             Full Stack Developer & UI/UX Designer, crafting{' '}
             <span className="text-gradient-secondary font-semibold">beautiful</span> and{' '}
             <span className="text-gradient font-semibold">functional</span> digital experiences.
           </p>
-          
+
           <div className="flex flex-wrap gap-4 justify-center lg:justify-start mb-8">
-            <Button 
-              onClick={handleHireMe}
-              className="btn-primary group"
-              size="lg"
-            >
+            <Button onClick={handleHireMe} className="btn-primary group" size="lg">
               <MessageCircle className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
               Hire Me
             </Button>
-            <Button 
+            <Button
               onClick={handleDownloadResume}
               className="btn-secondary group"
               size="lg"
+              disabled={!resumeUrl}
             >
               <Download className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
               Download CV
             </Button>
-            <Button 
+            <Button
               onClick={() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' })}
               variant="outline"
               className="px-8 py-3 border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white font-semibold rounded-xl transition-all duration-300 hover:scale-105 group"
@@ -133,14 +173,13 @@ const HeroSection = () => {
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-3xl blur-2xl opacity-25 group-hover:opacity-40 transition-opacity duration-500 transform group-hover:scale-110"></div>
             <div className="relative bg-white p-2 rounded-3xl shadow-2xl transform group-hover:scale-105 transition-all duration-500">
-              <img 
+              <img
                 src={heroImage}
                 alt="Developer workspace"
                 className="w-full max-w-lg mx-auto rounded-2xl shadow-xl"
               />
               <div className="absolute inset-2 bg-gradient-to-t from-black/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              
-              {/* Image edit controls */}
+
               {isAuthenticated && (
                 <div className="absolute top-4 right-4">
                   {!isEditingImage ? (
@@ -162,12 +201,7 @@ const HeroSection = () => {
                         id="hero-image-upload"
                       />
                       <label htmlFor="hero-image-upload">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="cursor-pointer"
-                          asChild
-                        >
+                        <Button variant="outline" size="sm" className="cursor-pointer" asChild>
                           <span>
                             <Upload className="w-4 h-4" />
                           </span>
@@ -181,11 +215,7 @@ const HeroSection = () => {
                       >
                         <Check className="w-4 h-4" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCancelImageEdit}
-                      >
+                      <Button variant="outline" size="sm" onClick={handleCancelImageEdit}>
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
@@ -197,7 +227,6 @@ const HeroSection = () => {
         </div>
       </div>
 
-      {/* Scroll indicator */}
       <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce">
         <div className="w-6 h-10 border-2 border-purple-600 rounded-full flex justify-center">
           <div className="w-1 h-3 bg-purple-600 rounded-full mt-2 animate-pulse"></div>

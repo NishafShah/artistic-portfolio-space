@@ -1,10 +1,11 @@
-
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Code, Database, Palette, Settings, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+ // ✅ Your Supabase client path
 
 interface Skill {
   id: string;
@@ -20,50 +21,48 @@ const SkillsSection = () => {
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    // Load skills from localStorage
-    const loadSkills = () => {
-      const storedSkills = JSON.parse(localStorage.getItem('portfolio_skills') || '[]');
-      
-      if (storedSkills.length === 0) {
-        // Default skills with programming language icons
-        const defaultSkills = [
-          { id: '1', name: 'JavaScript', level: 95, category: 'Language', icon: '🟨' },
-          { id: '2', name: 'React', level: 90, category: 'Framework', icon: '⚛️' },
-          { id: '3', name: 'TypeScript', level: 85, category: 'Language', icon: '🔷' },
-          { id: '4', name: 'Node.js', level: 80, category: 'Framework', icon: '💚' },
-          { id: '5', name: 'Python', level: 88, category: 'Language', icon: '🐍' },
-          { id: '6', name: 'HTML', level: 95, category: 'Language', icon: '🌐' },
-          { id: '7', name: 'CSS', level: 90, category: 'Language', icon: '🎨' },
-          { id: '8', name: 'Next.js', level: 85, category: 'Framework', icon: '▲' }
-        ];
-        setSkills(defaultSkills);
-        localStorage.setItem('portfolio_skills', JSON.stringify(defaultSkills));
-      } else {
-        setSkills(storedSkills);
+    const loadSkills = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('skills')
+          .select('*')
+          .order('category', { ascending: true });
+
+        if (error) {
+          console.error('❌ Supabase fetch error:', error.message);
+        }
+
+        if (data && data.length > 0) {
+          setSkills(data);
+        } else {
+          // Fallback to default if empty
+          const defaultSkills: Skill[] = [
+            { id: '1', name: 'JavaScript', level: 95, category: 'Language', icon: '🟨' },
+            { id: '2', name: 'React', level: 90, category: 'Framework', icon: '⚛️' },
+            { id: '3', name: 'TypeScript', level: 85, category: 'Language', icon: '🔷' },
+            { id: '4', name: 'Node.js', level: 80, category: 'Framework', icon: '💚' },
+            { id: '5', name: 'Python', level: 88, category: 'Language', icon: '🐍' },
+            { id: '6', name: 'HTML', level: 95, category: 'Language', icon: '🌐' },
+            { id: '7', name: 'CSS', level: 90, category: 'Language', icon: '🎨' },
+            { id: '8', name: 'Next.js', level: 85, category: 'Framework', icon: '▲' }
+          ];
+          setSkills(defaultSkills);
+        }
+      } catch (err) {
+        console.error('❌ Unexpected error fetching skills from Supabase:', err);
       }
     };
 
     loadSkills();
 
-    // Listen for storage changes to update skills when they're added
-    const handleStorageChange = () => {
-      loadSkills();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also listen for custom event when skills are updated from the same tab
-    window.addEventListener('skillsUpdated', handleStorageChange);
-
+    window.addEventListener('skillsUpdated', loadSkills);
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('skillsUpdated', handleStorageChange);
+      window.removeEventListener('skillsUpdated', loadSkills);
     };
   }, []);
 
-  const getSkillsByCategory = (category: string) => {
-    return skills.filter(skill => skill.category === category);
-  };
+  const getSkillsByCategory = (category: string) =>
+    skills.filter(skill => skill.category === category);
 
   const getIcon = (category: string) => {
     switch (category) {
@@ -116,10 +115,10 @@ const SkillsSection = () => {
             {categories.map((category, categoryIndex) => {
               const categorySkills = getSkillsByCategory(category);
               if (categorySkills.length === 0) return null;
-              
+
               return (
-                <Card 
-                  key={category} 
+                <Card
+                  key={category}
                   className="p-6 bg-white/80 backdrop-blur-lg border-2 border-gray-200 hover:border-blue-300 hover:shadow-2xl transition-all duration-500 hover:scale-105 animate-fade-in group"
                   style={{ animationDelay: `${categoryIndex * 100}ms` }}
                 >
@@ -132,19 +131,19 @@ const SkillsSection = () => {
                         {category === 'Language' ? 'Programming Languages' : 'Frameworks & Tools'} ({categorySkills.length})
                       </h3>
                     </div>
-                    
+
                     <div className="space-y-4">
                       {categorySkills.map((skill, skillIndex) => (
-                        <div 
-                          key={skill.id} 
+                        <div
+                          key={skill.id}
                           className="space-y-2 animate-fade-in group/skill"
                           style={{ animationDelay: `${(categoryIndex * 100) + (skillIndex * 50)}ms` }}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                               {skill.imageUrl ? (
-                                <img 
-                                  src={skill.imageUrl} 
+                                <img
+                                  src={skill.imageUrl}
                                   alt={skill.name}
                                   className="w-8 h-8 rounded-full object-cover group-hover/skill:scale-125 transition-transform duration-300"
                                 />
@@ -166,9 +165,9 @@ const SkillsSection = () => {
                             </span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
-                            <div 
+                            <div
                               className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-1000 ease-out transform origin-left group-hover/skill:scale-x-105"
-                              style={{ 
+                              style={{
                                 width: `${skill.level}%`,
                                 animationDelay: `${(categoryIndex * 100) + (skillIndex * 50) + 200}ms`
                               }}

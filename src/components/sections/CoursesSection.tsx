@@ -1,22 +1,67 @@
-
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Clock, DollarSign, Users, Play, Star, Zap, User } from 'lucide-react';
-import { Course } from '@/types/course';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
+import { useToast } from '@/hooks/use-toast'; // Import useToast for error handling
+
+// Define the Course interface to match your Supabase table schema
+// Ensure the keys match your Supabase column names (e.g., 'image_url' instead of 'image')
+interface Course {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string; // Changed from 'image' to 'image_url' for Supabase schema
+  level: string;
+  duration: string;
+  price: number;
+  modules: Array<{ id: string; title: string; duration: string }>;
+  order_index?: number; // Assuming you might have an order_index for sorting
+}
 
 const CoursesSection = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [visibleCourses, setVisibleCourses] = useState<number>(0);
   const { isAuthenticated } = useAuth();
+  const { toast } = useToast(); // Initialize toast
 
   useEffect(() => {
-    const storedCourses = JSON.parse(localStorage.getItem('portfolio_courses') || '[]');
-    setCourses(storedCourses);
-  }, []);
+    const fetchCourses = async () => {
+      const { data, error } = await supabase
+        .from('courses') // Ensure 'courses' is your actual table name
+        .select('*')
+        .order('order_index', { ascending: true }); // Order by order_index if you have one
+
+      if (error) {
+        console.error('Error fetching courses:', error.message);
+        toast({
+          title: "Error",
+          description: "Failed to load courses. Please try again later.",
+          variant: "destructive",
+        });
+      } else {
+        // Map Supabase data to your frontend Course interface if column names differ
+        const formattedCourses: Course[] = data.map((course: any) => ({
+          id: course.id,
+          title: course.title,
+          description: course.description,
+          image_url: course.image_url, // Assuming Supabase column is 'image_url'
+          level: course.level,
+          duration: course.duration,
+          price: course.price,
+          // Ensure modules is an array, as it might be stored as JSONB
+          modules: Array.isArray(course.modules) ? course.modules : [],
+          order_index: course.order_index,
+        }));
+        setCourses(formattedCourses);
+      }
+    };
+
+    fetchCourses();
+  }, [toast]); // Added toast to dependency array
 
   useEffect(() => {
     if (courses.length > 0) {
@@ -27,6 +72,8 @@ const CoursesSection = () => {
       });
     }
   }, [courses]);
+
+  const DEFAULT_COURSE_IMAGE_URL = 'https://images.unsplash.com/photo-1510519138101-570d1dfa3d5f'; // Add a default image URL
 
   if (courses.length === 0) {
     return (
@@ -111,25 +158,29 @@ const CoursesSection = () => {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
           {courses.map((course, index) => (
-            <Card 
-              key={course.id} 
+            <Card
+              key={course.id}
               className={`group hover:shadow-2xl transition-all duration-700 hover:scale-110 border-4 border-gray-200 hover:border-purple-300 bg-white/95 backdrop-blur-lg animate-fade-in relative overflow-hidden ${
                 index < visibleCourses ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
               }`}
-              style={{ 
+              style={{
                 animationDelay: `${index * 200}ms`,
                 transform: index < visibleCourses ? 'translateY(0)' : 'translateY(40px)',
                 transition: 'all 0.7s ease-out'
               }}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 rounded-lg opacity-0 group-hover:opacity-20 transition-opacity duration-500 animate-gradient"></div>
-              
-              {course.image && (
+
+              {/* Changed course.image to course.image_url */}
+              {course.image_url && (
                 <div className="aspect-video overflow-hidden rounded-t-lg relative">
-                  <img 
-                    src={course.image} 
+                  <img
+                    src={course.image_url || DEFAULT_COURSE_IMAGE_URL} // Use default if image_url is null/empty
                     alt={course.title}
                     className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-700"
+                    onError={(e) => { // Fallback on image loading error
+                      (e.target as HTMLImageElement).src = DEFAULT_COURSE_IMAGE_URL;
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                   <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-lg rounded-full px-4 py-2 opacity-0 group-hover:opacity-100 transition-all duration-500">
@@ -140,7 +191,7 @@ const CoursesSection = () => {
                   </div>
                 </div>
               )}
-              
+
               <CardHeader className="space-y-6 relative">
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-2xl font-heading font-bold group-hover:text-purple-600 transition-colors duration-500 line-clamp-2">
@@ -150,7 +201,7 @@ const CoursesSection = () => {
                     {course.level}
                   </Badge>
                 </div>
-                
+
                 <div className="flex items-center justify-between text-lg text-gray-600">
                   <div className="flex items-center space-x-2 bg-purple-50 rounded-full px-4 py-2 border border-purple-200">
                     <Clock className="w-5 h-5 text-purple-600" />
@@ -164,10 +215,10 @@ const CoursesSection = () => {
                   )}
                 </div>
               </CardHeader>
-              
+
               <CardContent className="space-y-6">
                 <p className="text-gray-700 text-lg leading-relaxed line-clamp-3 font-medium">{course.description}</p>
-                
+
                 {course.modules.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-4 border border-purple-200">
@@ -182,7 +233,7 @@ const CoursesSection = () => {
                         <span className="font-bold">Learn</span>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-3">
                       <p className="text-sm font-bold text-gray-600 uppercase tracking-wider">Course Modules:</p>
                       <div className="space-y-2 max-h-32 overflow-y-auto">
@@ -201,7 +252,7 @@ const CoursesSection = () => {
                     </div>
                   </div>
                 )}
-                
+
                 <Link to={`/course/${course.id}`}>
                   <Button className="w-full btn-primary group mt-6 text-lg py-4 font-bold shadow-xl">
                     <Play className="w-5 h-5 mr-3 group-hover:scale-125 transition-transform duration-300" />

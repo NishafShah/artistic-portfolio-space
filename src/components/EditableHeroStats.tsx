@@ -1,11 +1,12 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Edit, Check, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface HeroStats {
+  id?: string;
   projects: string;
   experience: string;
   satisfaction: string;
@@ -16,24 +17,57 @@ const EditableHeroStats = () => {
   const [stats, setStats] = useState<HeroStats>({
     projects: '50+',
     experience: '3+',
-    satisfaction: '100%'
+    satisfaction: '100%',
   });
   const [isEditing, setIsEditing] = useState(false);
   const [tempStats, setTempStats] = useState<HeroStats>(stats);
 
   useEffect(() => {
-    const storedStats = localStorage.getItem('portfolio_hero_stats');
-    if (storedStats) {
-      const parsed = JSON.parse(storedStats);
-      setStats(parsed);
-      setTempStats(parsed);
-    }
+    const fetchStats = async () => {
+      const { data, error } = await supabase
+        .from('hero_stats')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (data) {
+        setStats(data);
+        setTempStats(data);
+      } else {
+        console.warn('Stats not found:', error);
+      }
+    };
+
+    fetchStats();
   }, []);
 
-  const handleSave = () => {
-    setStats(tempStats);
-    localStorage.setItem('portfolio_hero_stats', JSON.stringify(tempStats));
-    setIsEditing(false);
+  const handleSave = async () => {
+    if (stats?.id) {
+      // Update
+      const { error } = await supabase
+        .from('hero_stats')
+        .update(tempStats)
+        .eq('id', stats.id);
+
+      if (!error) {
+        setStats(tempStats);
+        setIsEditing(false);
+      } else {
+        console.error('Error updating stats:', error);
+      }
+    } else {
+      // Insert
+      const { data, error } = await supabase.from('hero_stats').insert([tempStats]).select().single();
+
+      if (!error && data) {
+        setStats(data);
+        setTempStats(data);
+        setIsEditing(false);
+      } else {
+        console.error('Error saving new stats:', error);
+      }
+    }
   };
 
   const handleCancel = () => {

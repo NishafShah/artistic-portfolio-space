@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,7 @@ interface Skill {
 const defaultSkillIcons = {
   // Languages
   'JavaScript': '🟨',
-  'TypeScript': '🔷', 
+  'TypeScript': '🔷',
   'Python': '🐍',
   'Java': '☕',
   'C++': '⚡',
@@ -36,7 +35,7 @@ const defaultSkillIcons = {
   'Ruby': '💎',
   'C': '🔧',
   'Dart': '🎯',
-  
+
   // Frameworks & Tools
   'React': '⚛️',
   'Next.js': '▲',
@@ -68,56 +67,59 @@ const SkillsManager = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const loadSkills = async () => {
-      const { data, error } = await supabase
-        .from('skills')
-        .select('*')
-        .order('order_index', { ascending: true });
-      
-      if (error) {
-        console.error('Error loading skills:', error);
-        // Load default skills if none exist
-        if (error.code === 'PGRST116') {
-          const defaultSkills: Skill[] = [
-            { name: 'JavaScript', level: 95, category: 'Language' as const, icon: '🟨' },
-            { name: 'React', level: 90, category: 'Framework' as const, icon: '⚛️' },
-            { name: 'TypeScript', level: 85, category: 'Language' as const, icon: '🔷' },
-            { name: 'Node.js', level: 80, category: 'Framework' as const, icon: '💚' },
-            { name: 'Python', level: 88, category: 'Language' as const, icon: '🐍' },
-            { name: 'HTML', level: 95, category: 'Language' as const, icon: '🌐' },
-            { name: 'CSS', level: 90, category: 'Language' as const, icon: '🎨' },
-            { name: 'Next.js', level: 85, category: 'Framework' as const, icon: '▲' },
-          ];
-          setSkills(defaultSkills);
-        }
-      } else {
-        const formattedSkills = data.map(skill => ({
-          id: skill.id,
-          name: skill.name,
-          level: skill.level,
-          category: skill.category as 'Language' | 'Framework',
-          icon: skill.icon,
-          imageUrl: skill.image_url,
-        }));
-        setSkills(formattedSkills);
+  // Function to load skills from Supabase
+  const loadSkills = async () => {
+    const { data, error } = await supabase
+      .from('skills')
+      .select('*')
+      .order('order_index', { ascending: true });
+
+    if (error) {
+      console.error('Error loading skills:', error);
+      // Load default skills if none exist (this part of the logic might need review
+      // based on your Supabase table's initial state and desired behavior)
+      if (error.code === 'PGRST116') {
+        const defaultSkills: Skill[] = [
+          { name: 'JavaScript', level: 95, category: 'Language', icon: '🟨' },
+          { name: 'React', level: 90, category: 'Framework', icon: '⚛️' },
+          { name: 'TypeScript', level: 85, category: 'Language', icon: '🔷' },
+          { name: 'Node.js', level: 80, category: 'Framework', icon: '💚' },
+          { name: 'Python', level: 88, category: 'Language', icon: '🐍' },
+          { name: 'HTML', level: 95, category: 'Language', icon: '🌐' },
+          { name: 'CSS', level: 90, category: 'Language', icon: '🎨' },
+          { name: 'Next.js', level: 85, category: 'Framework', icon: '▲' },
+        ];
+        setSkills(defaultSkills);
       }
-    };
-    
+    } else {
+      const formattedSkills = data.map(skill => ({
+        id: skill.id,
+        name: skill.name,
+        level: skill.level,
+        category: skill.category as 'Language' | 'Framework',
+        icon: skill.icon,
+        imageUrl: skill.image_url,
+      }));
+      setSkills(formattedSkills);
+    }
+  };
+
+  // Load skills when the component mounts
+  useEffect(() => {
     loadSkills();
-  }, []);
+  }, []); // Empty dependency array means it runs once on mount
 
   const saveSkills = async (updatedSkills: Skill[]) => {
+    // This function is still useful for local state updates if needed immediately,
+    // but the primary data source should be re-fetching from Supabase after mutations.
     setSkills(updatedSkills);
-    // Dispatch custom event to notify SkillsSection
     window.dispatchEvent(new CustomEvent('skillsUpdated'));
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false, skillId?: string) => {
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Check file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast({
         title: "Error",
@@ -128,27 +130,26 @@ const SkillsManager = () => {
     }
 
     setUploadingImage(true);
-    
+
     const reader = new FileReader();
     reader.onload = (e) => {
       const imageUrl = e.target?.result as string;
-      
+
       if (isEdit) {
         setEditData({ ...editData, imageUrl, icon: undefined });
       } else {
         setNewSkill({ ...newSkill, imageUrl, icon: undefined });
       }
-      
+
       setUploadingImage(false);
       toast({
         title: "Success!",
         description: "Image uploaded successfully",
       });
-      
-      // Clear the input
-      event.target.value = '';
+
+      event.target.value = ''; // Clear the input
     };
-    
+
     reader.onerror = () => {
       setUploadingImage(false);
       toast({
@@ -157,7 +158,7 @@ const SkillsManager = () => {
         variant: "destructive",
       });
     };
-    
+
     reader.readAsDataURL(file);
   };
 
@@ -178,31 +179,21 @@ const SkillsManager = () => {
         category: newSkill.category,
         icon: newSkill.imageUrl ? undefined : (defaultSkillIcons[newSkill.name as keyof typeof defaultSkillIcons] || (newSkill.category === 'Language' ? '💻' : '🔧')),
         image_url: newSkill.imageUrl,
-        order_index: skills.length,
+        order_index: skills.length, // Consider if you need a more robust ordering strategy
       };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('skills')
-        .insert([skillData])
-        .select()
-        .single();
+        .insert([skillData]);
 
       if (error) throw error;
 
-      const newSkillWithId = {
-        id: data.id,
-        name: data.name,
-        level: data.level,
-        category: data.category as 'Language' | 'Framework',
-        icon: data.icon,
-        imageUrl: data.image_url,
-      };
+      // Re-load skills after successful addition
+      await loadSkills(); // <--- IMPORTANT: Call loadSkills here
 
-      const updatedSkills = [...skills, newSkillWithId];
-      await saveSkills(updatedSkills);
       setNewSkill({ name: '', level: 50, category: 'Language' });
       setShowAddForm(false);
-      
+
       toast({
         title: "Success!",
         description: "New skill has been added successfully",
@@ -226,9 +217,9 @@ const SkillsManager = () => {
 
       if (error) throw error;
 
-      const updatedSkills = skills.filter(skill => skill.id !== skillId);
-      await saveSkills(updatedSkills);
-      
+      // Re-load skills after successful deletion
+      await loadSkills(); // <--- IMPORTANT: Call loadSkills here
+
       toast({
         title: "Deleted",
         description: "Skill has been removed successfully",
@@ -268,17 +259,12 @@ const SkillsManager = () => {
 
       if (error) throw error;
 
-      const updatedSkills = skills.map(skill => 
-        skill.id === editingSkill ? {
-          ...editData,
-          id: skill.id,
-          icon: editData.imageUrl ? undefined : (defaultSkillIcons[editData.name as keyof typeof defaultSkillIcons] || (editData.category === 'Language' ? '💻' : '🔧'))
-        } : skill
-      );
-      await saveSkills(updatedSkills);
+      // Re-load skills after successful update
+      await loadSkills(); // <--- IMPORTANT: Call loadSkills here
+
       setEditingSkill(null);
       setEditData({ name: '', level: 50, category: 'Language' });
-      
+
       toast({
         title: "Updated!",
         description: "Skill has been updated successfully",
@@ -341,7 +327,7 @@ const SkillsManager = () => {
                 </Select>
               </div>
             </div>
-            
+
             <div>
               <Label>Proficiency Level: {newSkill.level}%</Label>
               <input
@@ -440,7 +426,7 @@ const SkillsManager = () => {
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={(e) => handleImageUpload(e, true, skill.id)}
+                          onChange={(e) => handleImageUpload(e, true)} // Removed skillId as it's not needed for the upload
                           className="hidden"
                           id={`edit-image-lang-${skill.id}`}
                           key={`edit-lang-${skill.id}-${Date.now()}`}
@@ -538,7 +524,7 @@ const SkillsManager = () => {
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={(e) => handleImageUpload(e, true, skill.id)}
+                          onChange={(e) => handleImageUpload(e, true)} // Removed skillId
                           className="hidden"
                           id={`edit-image-frame-${skill.id}`}
                           key={`edit-frame-${skill.id}-${Date.now()}`}
