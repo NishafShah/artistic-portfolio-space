@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Check, Edit } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const AboutManager = () => {
   const [name, setName] = useState('Nishaf Shah');
@@ -17,36 +18,71 @@ const AboutManager = () => {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
-  // Load about data from localStorage on component mount
+  // Load about data from Supabase on component mount
   useEffect(() => {
-    const savedAbout = localStorage.getItem('portfolio_about');
-    if (savedAbout) {
-      const parsedAbout = JSON.parse(savedAbout);
-      setName(parsedAbout.name || name);
-      setTitle(parsedAbout.title || title);
-      setBio(parsedAbout.bio || bio);
-    }
-  }, []);
-
-  const handleSave = () => {
-    setIsSaving(true);
-    
-    // Save to localStorage
-    const aboutData = {
-      name,
-      title,
-      bio
+    const loadAboutData = async () => {
+      const { data, error } = await supabase
+        .from('about_me')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error loading about data:', error);
+      } else if (data) {
+        setName(data.name || name);
+        setTitle(data.title || title);
+        setBio(data.bio || bio);
+      }
     };
     
-    localStorage.setItem('portfolio_about', JSON.stringify(aboutData));
+    loadAboutData();
+  }, []);
+
+  const handleSave = async () => {
+    setIsSaving(true);
     
-    setTimeout(() => {
+    try {
+      // Check if record exists
+      const { data: existingData } = await supabase
+        .from('about_me')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+
+      if (existingData) {
+        // Update existing record
+        const { error } = await supabase
+          .from('about_me')
+          .update({ name, title, bio })
+          .eq('id', existingData.id);
+        
+        if (error) throw error;
+      } else {
+        // Insert new record
+        const { error } = await supabase
+          .from('about_me')
+          .insert([{ name, title, bio }]);
+        
+        if (error) throw error;
+      }
+      
+      setTimeout(() => {
+        toast({
+          title: "Changes saved",
+          description: "Your about section has been updated successfully",
+        });
+        setIsSaving(false);
+      }, 1000);
+    } catch (error) {
+      console.error('Error saving about data:', error);
       toast({
-        title: "Changes saved",
-        description: "Your about section has been updated successfully",
+        title: "Error",
+        description: "Failed to save changes",
+        variant: "destructive",
       });
       setIsSaving(false);
-    }, 1000);
+    }
   };
 
   return (

@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      about_me: {
+        Row: {
+          bio: string | null
+          created_at: string
+          id: string
+          name: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          name?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          name?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       blog_posts: {
         Row: {
           content: string
@@ -148,6 +175,42 @@ export type Database = {
           order_index?: number | null
           technologies?: string[]
           title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      skills: {
+        Row: {
+          category: string
+          created_at: string
+          icon: string | null
+          id: string
+          image_url: string | null
+          level: number
+          name: string
+          order_index: number | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          image_url?: string | null
+          level?: number
+          name: string
+          order_index?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          image_url?: string | null
+          level?: number
+          name?: string
+          order_index?: number | null
           updated_at?: string
         }
         Relationships: []
