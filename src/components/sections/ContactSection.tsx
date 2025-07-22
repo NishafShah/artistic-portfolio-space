@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { sendContactEmail } from '@/lib/sendContactEmail';
 
 const ContactSection = () => {
   const { toast } = useToast();
@@ -32,6 +33,7 @@ const ContactSection = () => {
     }
 
     setLoading(true);
+
     const { error } = await supabase.from('contact_form').insert([form]);
 
     if (error) {
@@ -42,10 +44,32 @@ const ContactSection = () => {
         description: 'Please try again later.',
       });
     } else {
-      toast({
-        title: 'Message Sent!',
-        description: 'Thank you for reaching out.',
-      });
+      try {
+        const res = await sendContactEmail({
+          name: form.name,
+          email: form.email,
+          message: form.message,
+        });
+
+        if (res.success) {
+          toast({
+            title: 'Message Sent!',
+            description: 'Thank you for reaching out.',
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Message saved, but email failed!',
+          });
+        }
+      } catch (err) {
+        console.error('Email send error:', err);
+        toast({
+          variant: 'destructive',
+          title: 'Saved, but failed to send email.',
+        });
+      }
+
       setForm({ name: '', email: '', phone: '', message: '' });
     }
 
