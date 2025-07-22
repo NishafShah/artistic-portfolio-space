@@ -1,3 +1,4 @@
+// src/components/sections/CoursesSection.tsx
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +15,7 @@ interface Course {
   id: string;
   title: string;
   description: string;
-  image_url: string; // Changed from 'image' to 'image_url' for Supabase schema
+  image_url: string | null; // Changed from 'image' to 'image_url' for Supabase schema, allow null
   level: string;
   duration: string;
   price: number;
@@ -75,6 +76,7 @@ const CoursesSection = () => {
 
   const DEFAULT_COURSE_IMAGE_URL = 'https://images.unsplash.com/photo-1510519138101-570d1dfa3d5f'; // Add a default image URL
 
+  // Renders when no courses are available
   if (courses.length === 0) {
     return (
       <section id="courses" className="py-24 px-4 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 reveal">
@@ -90,7 +92,7 @@ const CoursesSection = () => {
             <p className="text-lg text-gray-500 mt-2">Check back soon for exciting learning opportunities!</p>
             {isAuthenticated && (
               <div className="mt-6">
-                <Link to="/dashboard">
+                <Link to="/dashboard"> {/* Link to your admin dashboard where you manage courses */}
                   <Button className="bg-purple-600 hover:bg-purple-700">
                     <User className="w-5 h-5 mr-2" />
                     Add Courses
@@ -146,7 +148,7 @@ const CoursesSection = () => {
           </div>
           {isAuthenticated && (
             <div className="mt-6">
-              <Link to="/dashboard">
+              <Link to="/dashboard"> {/* Link to your admin dashboard where you manage courses */}
                 <Button className="bg-purple-600 hover:bg-purple-700">
                   <User className="w-5 h-5 mr-2" />
                   Manage Courses
@@ -171,26 +173,24 @@ const CoursesSection = () => {
             >
               <div className="absolute inset-0 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 rounded-lg opacity-0 group-hover:opacity-20 transition-opacity duration-500 animate-gradient"></div>
 
-              {/* Changed course.image to course.image_url */}
-              {course.image_url && (
-                <div className="aspect-video overflow-hidden rounded-t-lg relative">
-                  <img
-                    src={course.image_url || DEFAULT_COURSE_IMAGE_URL} // Use default if image_url is null/empty
-                    alt={course.title}
-                    className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-700"
-                    onError={(e) => { // Fallback on image loading error
-                      (e.target as HTMLImageElement).src = DEFAULT_COURSE_IMAGE_URL;
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-lg rounded-full px-4 py-2 opacity-0 group-hover:opacity-100 transition-all duration-500">
-                    <span className="text-white font-bold text-sm flex items-center">
-                      <Zap className="w-4 h-4 mr-2 text-yellow-400" />
-                      Course Content
-                    </span>
-                  </div>
+              {/* Display course image */}
+              <div className="aspect-video overflow-hidden rounded-t-lg relative">
+                <img
+                  src={course.image_url || DEFAULT_COURSE_IMAGE_URL} // Use default if image_url is null or empty
+                  alt={course.title}
+                  className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-700"
+                  onError={(e) => { // Fallback on image loading error
+                    (e.target as HTMLImageElement).src = DEFAULT_COURSE_IMAGE_URL;
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-lg rounded-full px-4 py-2 opacity-0 group-hover:opacity-100 transition-all duration-500">
+                  <span className="text-white font-bold text-sm flex items-center">
+                    <Zap className="w-4 h-4 mr-2 text-yellow-400" />
+                    Course Content
+                  </span>
                 </div>
-              )}
+              </div>
 
               <CardHeader className="space-y-6 relative">
                 <div className="flex justify-between items-start">

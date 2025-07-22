@@ -5,7 +5,6 @@ import { Code, Database, Palette, Settings, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
- // ✅ Your Supabase client path
 
 interface Skill {
   id: string;
@@ -32,21 +31,23 @@ const SkillsSection = () => {
           console.error('❌ Supabase fetch error:', error.message);
         }
 
-        if (data && data.length > 0) {
-          setSkills(data);
-        } else {
-          // Fallback to default if empty
-          const defaultSkills: Skill[] = [
-            { id: '1', name: 'JavaScript', level: 95, category: 'Language', icon: '🟨' },
-            { id: '2', name: 'React', level: 90, category: 'Framework', icon: '⚛️' },
-            { id: '3', name: 'TypeScript', level: 85, category: 'Language', icon: '🔷' },
-            { id: '4', name: 'Node.js', level: 80, category: 'Framework', icon: '💚' },
-            { id: '5', name: 'Python', level: 88, category: 'Language', icon: '🐍' },
-            { id: '6', name: 'HTML', level: 95, category: 'Language', icon: '🌐' },
-            { id: '7', name: 'CSS', level: 90, category: 'Language', icon: '🎨' },
-            { id: '8', name: 'Next.js', level: 85, category: 'Framework', icon: '▲' }
-          ];
-          setSkills(defaultSkills);
+        if (data) {
+          const bucketBase = 'https://plzmnpbzqbmdbbxdpgwi.supabase.co/storage/v1/object/public/skill-icons';
+
+          const skillsWithImage = data.map((skill) => {
+            if (!skill.imageUrl) {
+              const safeName = skill.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+              const extensions = ['.png', '.jpeg', '.jpg'];
+
+              for (let ext of extensions) {
+                const url = `${bucketBase}/${safeName}${ext}`;
+                return { ...skill, imageUrl: url }; // naive guess; you can enhance with head-check if needed
+              }
+            }
+            return skill;
+          });
+
+          setSkills(skillsWithImage);
         }
       } catch (err) {
         console.error('❌ Unexpected error fetching skills from Supabase:', err);
@@ -62,7 +63,7 @@ const SkillsSection = () => {
   }, []);
 
   const getSkillsByCategory = (category: string) =>
-    skills.filter(skill => skill.category === category);
+    skills.filter((skill) => skill.category === category);
 
   const getIcon = (category: string) => {
     switch (category) {
@@ -145,6 +146,9 @@ const SkillsSection = () => {
                                 <img
                                   src={skill.imageUrl}
                                   alt={skill.name}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                  }}
                                   className="w-8 h-8 rounded-full object-cover group-hover/skill:scale-125 transition-transform duration-300"
                                 />
                               ) : skill.icon ? (
@@ -169,7 +173,7 @@ const SkillsSection = () => {
                               className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-1000 ease-out transform origin-left group-hover/skill:scale-x-105"
                               style={{
                                 width: `${skill.level}%`,
-                                animationDelay: `${(categoryIndex * 100) + (skillIndex * 50) + 200}ms`
+                                animationDelay: `${(categoryIndex * 100) + (skillIndex * 50) + 200}ms`,
                               }}
                             ></div>
                           </div>
