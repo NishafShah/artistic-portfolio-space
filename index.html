@@ -1,35 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <!-- Primary Meta Tags -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Portfolio</title>
-    <meta name="description" content="Professional Portfolio Website" />
-    <meta name="author" content="Portfolio" />
 
-    <!-- Google Font -->
+    <title>Syed Nishaf Hussain Shah | Full Stack Developer Portfolio</title>
+    <meta
+      name="description"
+      content="Explore the portfolio of Syed Nishaf Hussain Shah – a passionate Full Stack Developer skilled in React, Spring Boot, and modern web technologies."
+    />
+    <meta
+      name="keywords"
+      content="Syed Nishaf Hussain Shah, Full Stack Developer, React Developer, Spring Boot Developer, Portfolio, Lahore Developer"
+    />
+    <meta name="author" content="Syed Nishaf Hussain Shah" />
+    <link rel="canonical" href="https://artistic-portfolio-space.vercel.app/" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://artistic-portfolio-space.vercel.app/" />
+    <meta property="og:title" content="Syed Nishaf Hussain Shah | Full Stack Developer" />
+    <meta
+      property="og:description"
+      content="Explore the portfolio of Syed Nishaf Hussain Shah, a React & Spring Boot developer. View projects, resume, and get in touch."
+    />
+    <meta property="og:image" content="https://artistic-portfolio-space.vercel.app/og-image.png" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://artistic-portfolio-space.vercel.app/" />
+    <meta name="twitter:title" content="Syed Nishaf Hussain Shah | Portfolio" />
+    <meta
+      name="twitter:description"
+      content="See the latest projects and skills of Full Stack Developer Syed Nishaf Hussain Shah."
+    />
+    <meta name="twitter:image" content="https://artistic-portfolio-space.vercel.app/og-image.png" />
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Syed Nishaf Hussain Shah",
+        "url": "https://artistic-portfolio-space.vercel.app",
+        "sameAs": [
+          "https://www.linkedin.com/in/syed-nishaf-hussain-shah-8b2409310/",
+          "https://github.com/NishafShah"
+        ],
+        "jobTitle": "Full Stack Developer",
+        "worksFor": {
+          "@type": "Organization",
+          "name": "Freelance"
+        }
+      }
+    </script>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+
+    <!-- Google Fonts -->
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
     />
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <!-- Preload Critical Assets -->
+    <link rel="preload" as="font" href="/fonts/your-custom-font.woff2" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" as="image" href="/og-image.png" type="image/png" />
 
-    <!-- Open Graph Tags (Optional: Replace with your own image and domain if needed) -->
-    <meta property="og:title" content="Portfolio" />
-    <meta property="og:description" content="Professional Portfolio Website" />
-    <meta property="og:type" content="website" />
-    <!-- <meta property="og:image" content="/your-image.png" /> -->
-
-    <!-- Twitter Meta (Optional: Remove or customize later) -->
-    <meta name="twitter:card" content="summary_large_image" />
+    <!-- Robots -->
+    <meta name="robots" content="index, follow" />
   </head>
 
   <body>
     <div id="root"></div>
-    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
+
+    <!-- GPT Engineer Script (Optional) -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
+
+    <!-- Main React Entry -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

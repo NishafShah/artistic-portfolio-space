@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 
 const Animation = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
@@ -94,6 +95,8 @@ const Animation = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return <>{children}</>;
+  
 };
+
 
 export default Animation;
