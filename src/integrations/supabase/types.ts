@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -41,72 +41,30 @@ export type Database = {
         }
         Relationships: []
       }
-      blog_posts: {
+      contact_form: {
         Row: {
-          content: string
-          created_at: string
-          excerpt: string | null
+          created_at: string | null
+          email: string | null
           id: string
-          image_url: string | null
-          published: boolean | null
-          published_at: string | null
-          slug: string
-          tags: string[] | null
-          title: string
-          updated_at: string
+          message: string | null
+          name: string | null
+          phone: string | null
         }
         Insert: {
-          content: string
-          created_at?: string
-          excerpt?: string | null
+          created_at?: string | null
+          email?: string | null
           id?: string
-          image_url?: string | null
-          published?: boolean | null
-          published_at?: string | null
-          slug: string
-          tags?: string[] | null
-          title: string
-          updated_at?: string
+          message?: string | null
+          name?: string | null
+          phone?: string | null
         }
         Update: {
-          content?: string
-          created_at?: string
-          excerpt?: string | null
+          created_at?: string | null
+          email?: string | null
           id?: string
-          image_url?: string | null
-          published?: boolean | null
-          published_at?: string | null
-          slug?: string
-          tags?: string[] | null
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      contact_submissions: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          message: string
-          name: string
-          status: string | null
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id?: string
-          message: string
-          name: string
-          status?: string | null
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          message?: string
-          name?: string
-          status?: string | null
+          message?: string | null
+          name?: string | null
+          phone?: string | null
         }
         Relationships: []
       }
@@ -190,108 +148,132 @@ export type Database = {
         }
         Relationships: []
       }
+      hero_stats: {
+        Row: {
+          created_at: string | null
+          experience: string | null
+          id: string
+          projects: string | null
+          satisfaction: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          experience?: string | null
+          id?: string
+          projects?: string | null
+          satisfaction?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          experience?: string | null
+          id?: string
+          projects?: string | null
+          satisfaction?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
-          created_at: string
+          created_at: string | null
           full_name: string | null
           id: string
           role: string | null
-          updated_at: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           full_name?: string | null
           id?: string
           role?: string | null
-          updated_at?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           full_name?: string | null
           id?: string
           role?: string | null
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
       }
       projects: {
         Row: {
-          created_at: string
-          description: string
+          created_at: string | null
+          description: string | null
           featured: boolean | null
           github_url: string | null
           id: string
           image_url: string | null
           live_url: string | null
           order_index: number | null
-          technologies: string[]
+          technologies: string[] | null
           title: string
-          updated_at: string
+          user_id: string | null
         }
         Insert: {
-          created_at?: string
-          description: string
+          created_at?: string | null
+          description?: string | null
           featured?: boolean | null
           github_url?: string | null
           id?: string
           image_url?: string | null
           live_url?: string | null
           order_index?: number | null
-          technologies?: string[]
+          technologies?: string[] | null
           title: string
-          updated_at?: string
+          user_id?: string | null
         }
         Update: {
-          created_at?: string
-          description?: string
+          created_at?: string | null
+          description?: string | null
           featured?: boolean | null
           github_url?: string | null
           id?: string
           image_url?: string | null
           live_url?: string | null
           order_index?: number | null
-          technologies?: string[]
+          technologies?: string[] | null
           title?: string
-          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
       skills: {
         Row: {
           category: string
-          created_at: string
+          created_at: string | null
           icon: string | null
           id: string
           image_url: string | null
           level: number
           name: string
           order_index: number | null
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
           category: string
-          created_at?: string
+          created_at?: string | null
           icon?: string | null
           id?: string
           image_url?: string | null
-          level?: number
+          level: number
           name: string
           order_index?: number | null
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
           category?: string
-          created_at?: string
+          created_at?: string | null
           icon?: string | null
           id?: string
           image_url?: string | null
           level?: number
           name?: string
           order_index?: number | null
-          updated_at?: string
+          updated_at?: string | null
         }
         Relationships: []
       }

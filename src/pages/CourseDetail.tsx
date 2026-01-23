@@ -7,17 +7,22 @@ import { ArrowLeft, Clock, DollarSign, BookOpen, Users, Play, CheckCircle, Star,
 import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
 import { useToast } from '@/hooks/use-toast'; // Import useToast for error handling
 
-// Re-define Course interface here or import it from a shared types file
-// Ensure it matches your Supabase table schema
+interface CourseModule {
+  id: string;
+  title: string;
+  description?: string;
+  duration: string;
+}
+
 interface Course {
   id: string;
   title: string;
   description: string;
-  image_url: string | null; // Changed from 'image' to 'image_url' for Supabase schema
+  image_url: string | null;
   level: string;
   duration: string;
   price: number;
-  modules: Array<{ id: string; title: string; description?: string; duration: string }>;
+  modules: CourseModule[];
   order_index?: number;
 }
 
@@ -43,35 +48,53 @@ const CourseDetail = () => {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('courses') // Ensure 'courses' is your actual table name
+      // Fetch course data
+      const { data: courseData, error: courseError } = await supabase
+        .from('courses')
         .select('*')
-        .eq('id', courseId) // Filter by the courseId from the URL
-        .single(); // Use .single() to fetch a single row
+        .eq('id', courseId)
+        .single();
 
-      if (error) {
-        console.error('Error fetching course details:', error.message);
+      if (courseError) {
+        console.error('Error fetching course details:', courseError.message);
         toast({
           title: "Error",
           description: "Failed to load course details. Please try again later.",
           variant: "destructive",
         });
         setCourse(null);
-      } else if (data) {
-        // Map Supabase data to your frontend Course interface
-        const formattedCourse: Course = {
-          id: data.id,
-          title: data.title,
-          description: data.description,
-          image_url: data.image_url, // Use image_url
-          level: data.level,
-          duration: data.duration,
-          price: data.price,
-          modules: Array.isArray(data.modules) ? data.modules : [],
-          order_index: data.order_index,
-        };
-        setCourse(formattedCourse);
+        setLoading(false);
+        return;
       }
+
+      // Fetch modules for this course
+      const { data: modulesData, error: modulesError } = await supabase
+        .from('course_modules')
+        .select('*')
+        .eq('course_id', courseId)
+        .order('order_index', { ascending: true });
+
+      if (modulesError) {
+        console.error('Error fetching course modules:', modulesError.message);
+      }
+
+      const formattedCourse: Course = {
+        id: courseData.id,
+        title: courseData.title,
+        description: courseData.description,
+        image_url: courseData.image_url,
+        level: courseData.level,
+        duration: courseData.duration || '',
+        price: courseData.price || 0,
+        modules: (modulesData || []).map(m => ({
+          id: m.id,
+          title: m.title,
+          duration: m.duration || '',
+          description: '',
+        })),
+        order_index: courseData.order_index,
+      };
+      setCourse(formattedCourse);
       setLoading(false);
     };
 
@@ -310,7 +333,7 @@ const CourseDetail = () => {
                         <div className="flex items-center space-x-4">
                           <span className="text-purple-600 font-bold text-lg">{module.duration}</span>
                           {/* Consider dynamically showing if a module is completed/playable */}
-                          <Play className="w-6 h-6 text-purple-500 cursor-pointer hover:text-purple-700" title="Play Module" />
+                          <Play className="w-6 h-6 text-purple-500 cursor-pointer hover:text-purple-700" />
                         </div>
                       </div>
                     ))}

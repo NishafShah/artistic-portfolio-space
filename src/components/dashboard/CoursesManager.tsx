@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,14 +6,23 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash, Edit, Check, X, Upload } from 'lucide-react';
+import { PlusCircle, Trash, Check, X, Upload, ImageIcon, Loader2 } from 'lucide-react';
 import { Course, CourseModule } from '@/types/course';
 import { supabase } from '@/integrations/supabase/client';
+
+const COURSE_IMAGE_BUCKET = 'course-images';
+const DEFAULT_COURSE_IMAGE = '/placeholder.svg';
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const CoursesManager = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [editingCourse, setEditingCourse] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [newCourse, setNewCourse] = useState<Partial<Course>>({
     title: '',
     description: '',
@@ -56,6 +65,7 @@ const CoursesManager = () => {
               modules: [],
               price: course.price || 0,
               createdAt: course.created_at,
+              image: course.image_url,
             };
           }
 
@@ -87,6 +97,78 @@ const CoursesManager = () => {
     loadCourses();
   }, []);
 
+  const validateFile = (file: File): string | null => {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return 'Invalid file type. Please upload JPG, PNG, or WebP images only.';
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return 'File size exceeds 2MB limit.';
+    }
+    return null;
+  };
+
+  const uploadImage = async (file: File, courseId: string): Promise<string | null> => {
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const fileName = `courses/${courseId}-${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(COURSE_IMAGE_BUCKET)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw new Error('Failed to upload image');
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(COURSE_IMAGE_BUCKET)
+      .getPublicUrl(fileName);
+
+    return publicUrl;
+  };
+
+  const deleteOldImage = async (imageUrl: string) => {
+    if (!imageUrl || !imageUrl.includes(COURSE_IMAGE_BUCKET)) return;
+    
+    try {
+      const path = imageUrl.split(`${COURSE_IMAGE_BUCKET}/`)[1];
+      if (path) {
+        await supabase.storage.from(COURSE_IMAGE_BUCKET).remove([path]);
+      }
+    } catch (error) {
+      console.error('Error deleting old image:', error);
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const error = validateFile(file);
+    if (error) {
+      toast({
+        title: "Invalid file",
+        description: error,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const clearImageSelection = () => {
+    setSelectedFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleAddCourse = async () => {
     if (!newCourse.title || !newCourse.description) {
       toast({
@@ -97,7 +179,9 @@ const CoursesManager = () => {
       return;
     }
 
+    setUploading(true);
     try {
+      // First create the course to get an ID
       const { data: courseData, error: courseError } = await supabase
         .from('courses')
         .insert([{
@@ -106,7 +190,6 @@ const CoursesManager = () => {
           duration: newCourse.duration || '4 weeks',
           level: newCourse.level,
           price: newCourse.price || 0,
-          image_url: newCourse.image,
           instructor: newCourse.instructor,
           tags: newCourse.tags || [],
           order_index: courses.length,
@@ -115,6 +198,21 @@ const CoursesManager = () => {
         .single();
 
       if (courseError) throw courseError;
+
+      let imageUrl: string | null = null;
+
+      // Upload image if selected
+      if (selectedFile) {
+        imageUrl = await uploadImage(selectedFile, courseData.id);
+        
+        // Update course with image URL
+        const { error: updateError } = await supabase
+          .from('courses')
+          .update({ image_url: imageUrl })
+          .eq('id', courseData.id);
+
+        if (updateError) throw updateError;
+      }
 
       // Add modules if any
       if (newCourse.modules && newCourse.modules.length > 0) {
@@ -141,7 +239,7 @@ const CoursesManager = () => {
         modules: newCourse.modules || [],
         price: courseData.price || 0,
         createdAt: courseData.created_at,
-        image: courseData.image_url,
+        image: imageUrl || undefined,
         instructor: courseData.instructor,
         tags: courseData.tags || [],
       };
@@ -155,6 +253,7 @@ const CoursesManager = () => {
         modules: [],
         price: 0,
       });
+      clearImageSelection();
       setShowAddForm(false);
 
       toast({
@@ -168,11 +267,72 @@ const CoursesManager = () => {
         description: "Failed to add course",
         variant: "destructive",
       });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleUpdateCourseImage = async (courseId: string, file: File) => {
+    const error = validateFile(file);
+    if (error) {
+      toast({
+        title: "Invalid file",
+        description: error,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const course = courses.find(c => c.id === courseId);
+      
+      // Delete old image if exists
+      if (course?.image) {
+        await deleteOldImage(course.image);
+      }
+
+      // Upload new image
+      const imageUrl = await uploadImage(file, courseId);
+
+      // Update database
+      const { error: updateError } = await supabase
+        .from('courses')
+        .update({ image_url: imageUrl })
+        .eq('id', courseId);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setCourses(courses.map(c => 
+        c.id === courseId ? { ...c, image: imageUrl || undefined } : c
+      ));
+
+      toast({
+        title: "Image updated",
+        description: "Course image has been updated successfully",
+      });
+    } catch (err) {
+      console.error('Error updating image:', err);
+      toast({
+        title: "Error",
+        description: "Failed to update course image",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
   const handleDeleteCourse = async (courseId: string) => {
     try {
+      const course = courses.find(c => c.id === courseId);
+      
+      // Delete image from storage if exists
+      if (course?.image) {
+        await deleteOldImage(course.image);
+      }
+
       // Delete course (modules will be deleted automatically due to CASCADE)
       const { error } = await supabase
         .from('courses')
@@ -273,33 +433,6 @@ const CoursesManager = () => {
     }
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>, courseId?: string) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload an image file",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const imageUrl = URL.createObjectURL(file);
-    
-    if (courseId) {
-      // Update existing course image would need Supabase Storage implementation
-      // For now, just update local state
-      const updatedCourses = courses.map(course => 
-        course.id === courseId ? { ...course, image: imageUrl } : course
-      );
-      setCourses(updatedCourses);
-    } else {
-      setNewCourse({ ...newCourse, image: imageUrl });
-    }
-  };
-
   return (
     <div className="animate-fade-in space-y-6">
       <div className="flex justify-between items-center">
@@ -381,22 +514,45 @@ const CoursesManager = () => {
             </div>
 
             <div>
-              <Label htmlFor="courseImage">Course Image</Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+              <Label htmlFor="courseImage">Course Image (JPG, PNG, WebP - Max 2MB)</Label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-purple-400 transition-colors">
                 <input
                   type="file"
                   id="courseImage"
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload(e)}
+                  ref={fileInputRef}
+                  accept=".jpg,.jpeg,.png,.webp"
+                  onChange={handleFileSelect}
                   className="hidden"
                 />
                 <label htmlFor="courseImage" className="cursor-pointer flex flex-col items-center">
-                  <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-500">Click to upload course image</p>
+                  {imagePreview ? (
+                    <div className="relative">
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="h-32 w-48 object-cover rounded-lg shadow-md" 
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute -top-2 -right-2"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          clearImageSelection();
+                        }}
+                      >
+                        <X size={14} />
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <ImageIcon className="h-12 w-12 text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-500">Click to upload course image</p>
+                      <p className="text-xs text-gray-400 mt-1">JPG, PNG, or WebP up to 2MB</p>
+                    </>
+                  )}
                 </label>
-                {newCourse.image && (
-                  <img src={newCourse.image} alt="Preview" className="mt-2 h-20 w-20 object-cover rounded mx-auto" />
-                )}
               </div>
             </div>
 

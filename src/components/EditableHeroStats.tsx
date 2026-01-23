@@ -3,7 +3,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Edit, Check, X } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface HeroStats {
   id?: string;
@@ -23,51 +22,18 @@ const EditableHeroStats = () => {
   const [tempStats, setTempStats] = useState<HeroStats>(stats);
 
   useEffect(() => {
-    const fetchStats = async () => {
-      const { data, error } = await supabase
-        .from('hero_stats')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (data) {
-        setStats(data);
-        setTempStats(data);
-      } else {
-        console.warn('Stats not found:', error);
-      }
-    };
-
-    fetchStats();
+    const savedStats = localStorage.getItem('heroStats');
+    if (savedStats) {
+      const parsed = JSON.parse(savedStats);
+      setStats(parsed);
+      setTempStats(parsed);
+    }
   }, []);
 
-  const handleSave = async () => {
-    if (stats?.id) {
-      // Update
-      const { error } = await supabase
-        .from('hero_stats')
-        .update(tempStats)
-        .eq('id', stats.id);
-
-      if (!error) {
-        setStats(tempStats);
-        setIsEditing(false);
-      } else {
-        console.error('Error updating stats:', error);
-      }
-    } else {
-      // Insert
-      const { data, error } = await supabase.from('hero_stats').insert([tempStats]).select().single();
-
-      if (!error && data) {
-        setStats(data);
-        setTempStats(data);
-        setIsEditing(false);
-      } else {
-        console.error('Error saving new stats:', error);
-      }
-    }
+  const handleSave = () => {
+    setStats(tempStats);
+    localStorage.setItem('heroStats', JSON.stringify(tempStats));
+    setIsEditing(false);
   };
 
   const handleCancel = () => {
