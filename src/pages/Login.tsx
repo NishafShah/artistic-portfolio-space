@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,16 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail, Lock, LogIn } from 'lucide-react';
-
-const AUTHORIZED_EMAIL = 'shahmurrawat@gmail.com';
-const AUTHORIZED_PASSWORD = 'Nishaf$25';
+import { Mail, Lock, LogIn, Loader2 } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -26,29 +22,18 @@ const Login = () => {
     setIsVisible(true);
   }, []);
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, authLoading, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // First create account if this is the first login
-      const storedUsers = JSON.parse(localStorage.getItem('portfolio_users') || '[]');
-      if (storedUsers.length === 0 && email === AUTHORIZED_EMAIL && password === AUTHORIZED_PASSWORD) {
-        const newUser = {
-          id: `user_${Date.now()}`,
-          email: AUTHORIZED_EMAIL,
-          password: AUTHORIZED_PASSWORD,
-          name: 'Admin User',
-        };
-        
-        storedUsers.push(newUser);
-        localStorage.setItem('portfolio_users', JSON.stringify(storedUsers));
-        toast({
-          title: "Admin account created",
-          description: "Login successful with admin credentials",
-        });
-      }
-      
       const success = await login(email, password);
       
       if (success) {
@@ -58,30 +43,30 @@ const Login = () => {
         });
         navigate('/dashboard');
       } else {
-        if (email === AUTHORIZED_EMAIL) {
-          toast({
-            title: "Login failed",
-            description: "Password is incorrect",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Login failed",
-            description: "Only authorized admins can log in",
-            variant: "destructive",
-          });
-        }
+        toast({
+          title: "Login failed",
+          description: "Invalid email or password. Please try again.",
+          variant: "destructive",
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100">
+        <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100 p-4 relative overflow-hidden">
@@ -96,9 +81,9 @@ const Login = () => {
         } relative z-10 backdrop-blur-sm bg-white/90`}
       >
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-3xl font-bold text-gray-800 animate-fade-in">Login</CardTitle>
+          <CardTitle className="text-3xl font-bold text-gray-800 animate-fade-in">Welcome Back</CardTitle>
           <CardDescription className="text-gray-600">
-            Enter your credentials to access your account
+            Sign in to access your account and track your courses
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -110,7 +95,7 @@ const Login = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="shahmurrawat@gmail.com"
+                  placeholder="your@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -119,12 +104,7 @@ const Login = () => {
               </div>
             </div>
             <div className="space-y-2 transition-all duration-300 hover:scale-[1.02]">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link to="/signup" className="text-xs text-purple-600 hover:text-purple-800 transition-colors">
-                  Forgot password?
-                </Link>
-              </div>
+              <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                 <Input
@@ -144,16 +124,31 @@ const Login = () => {
               disabled={isLoading}
             >
               <span className="relative z-10 flex items-center justify-center">
-                {isLoading ? 'Logging in...' : 'Login'} <LogIn className="ml-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    Sign In <LogIn className="ml-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
+                  </>
+                )}
               </span>
               <div className="absolute inset-0 bg-purple-700 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-2">
+        <CardFooter className="flex flex-col space-y-4">
           <div className="text-center text-sm text-gray-600">
-            <Link to="/" className="text-purple-600 hover:underline">
-              Back to Portfolio
+            Don't have an account?{' '}
+            <Link to="/signup" className="text-purple-600 hover:underline font-semibold">
+              Sign up
+            </Link>
+          </div>
+          <div className="text-center text-sm">
+            <Link to="/" className="text-gray-500 hover:text-purple-600 transition-colors">
+              ← Back to Portfolio
             </Link>
           </div>
         </CardFooter>
