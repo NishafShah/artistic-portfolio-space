@@ -1,4 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,9 +21,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash, Check, X, Upload, ImageIcon, Loader2 } from 'lucide-react';
+import { PlusCircle, Check, X, ImageIcon } from 'lucide-react';
 import { Course, CourseModule } from '@/types/course';
 import { supabase } from '@/integrations/supabase/client';
+import SortableCourseCard from './SortableCourseCard';
 
 const COURSE_IMAGE_BUCKET = 'course-images';
 const DEFAULT_COURSE_IMAGE = '/placeholder.svg';
@@ -17,7 +33,6 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const CoursesManager = () => {
   const [courses, setCourses] = useState<Course[]>([]);
-  const [editingCourse, setEditingCourse] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -32,6 +47,17 @@ const CoursesManager = () => {
     price: 0,
   });
   const { toast } = useToast();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     const loadCourses = async () => {
@@ -272,58 +298,6 @@ const CoursesManager = () => {
     }
   };
 
-  const handleUpdateCourseImage = async (courseId: string, file: File) => {
-    const error = validateFile(file);
-    if (error) {
-      toast({
-        title: "Invalid file",
-        description: error,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const course = courses.find(c => c.id === courseId);
-      
-      // Delete old image if exists
-      if (course?.image) {
-        await deleteOldImage(course.image);
-      }
-
-      // Upload new image
-      const imageUrl = await uploadImage(file, courseId);
-
-      // Update database
-      const { error: updateError } = await supabase
-        .from('courses')
-        .update({ image_url: imageUrl })
-        .eq('id', courseId);
-
-      if (updateError) throw updateError;
-
-      // Update local state
-      setCourses(courses.map(c => 
-        c.id === courseId ? { ...c, image: imageUrl || undefined } : c
-      ));
-
-      toast({
-        title: "Image updated",
-        description: "Course image has been updated successfully",
-      });
-    } catch (err) {
-      console.error('Error updating image:', err);
-      toast({
-        title: "Error",
-        description: "Failed to update course image",
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const handleDeleteCourse = async (courseId: string) => {
     try {
       const course = courses.find(c => c.id === courseId);
@@ -433,13 +407,86 @@ const CoursesManager = () => {
     }
   };
 
+  const handleCourseDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = courses.findIndex((c) => c.id === active.id);
+      const newIndex = courses.findIndex((c) => c.id === over.id);
+
+      const reorderedCourses = arrayMove(courses, oldIndex, newIndex);
+      setCourses(reorderedCourses);
+
+      // Update order_index in database
+      try {
+        await Promise.all(
+          reorderedCourses.map((course, index) =>
+            supabase
+              .from('courses')
+              .update({ order_index: index })
+              .eq('id', course.id)
+          )
+        );
+
+        toast({
+          title: "Order updated",
+          description: "Course order has been saved",
+        });
+      } catch (error) {
+        console.error('Error updating order:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save course order",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleModuleReorder = async (courseId: string, oldIndex: number, newIndex: number) => {
+    const courseIndex = courses.findIndex((c) => c.id === courseId);
+    if (courseIndex === -1) return;
+
+    const course = courses[courseIndex];
+    const reorderedModules = arrayMove(course.modules, oldIndex, newIndex);
+
+    // Update local state
+    const updatedCourses = [...courses];
+    updatedCourses[courseIndex] = { ...course, modules: reorderedModules };
+    setCourses(updatedCourses);
+
+    // Update order_index in database
+    try {
+      await Promise.all(
+        reorderedModules.map((module, index) =>
+          supabase
+            .from('course_modules')
+            .update({ order_index: index })
+            .eq('id', module.id)
+        )
+      );
+
+      toast({
+        title: "Order updated",
+        description: "Module order has been saved",
+      });
+    } catch (error) {
+      console.error('Error updating module order:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save module order",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="animate-fade-in space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Courses Management</h2>
+        <h2 className="text-2xl font-bold text-foreground">Courses Management</h2>
         <Button
           onClick={() => setShowAddForm(true)}
-          className="bg-purple-600 hover:bg-purple-700 flex items-center gap-2"
+          className="bg-primary hover:bg-primary/90 flex items-center gap-2"
         >
           <PlusCircle size={18} />
           Add Course
@@ -515,7 +562,7 @@ const CoursesManager = () => {
 
             <div>
               <Label htmlFor="courseImage">Course Image (JPG, PNG, WebP - Max 2MB)</Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-purple-400 transition-colors">
+              <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/40 transition-colors">
                 <input
                   type="file"
                   id="courseImage"
@@ -547,9 +594,9 @@ const CoursesManager = () => {
                     </div>
                   ) : (
                     <>
-                      <ImageIcon className="h-12 w-12 text-gray-400 mb-2" />
-                      <p className="text-sm text-gray-500">Click to upload course image</p>
-                      <p className="text-xs text-gray-400 mt-1">JPG, PNG, or WebP up to 2MB</p>
+                      <ImageIcon className="h-12 w-12 text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">Click to upload course image</p>
+                      <p className="text-xs text-muted-foreground/70 mt-1">JPG, PNG, or WebP up to 2MB</p>
                     </>
                   )}
                 </label>
@@ -573,75 +620,36 @@ const CoursesManager = () => {
         </Card>
       )}
 
-      <div className="grid gap-6">
-        {courses.map((course) => (
-          <Card key={course.id} className="shadow-lg hover:shadow-xl transition-shadow animate-fade-in">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div className="flex gap-4">
-                  {course.image && (
-                    <img src={course.image} alt={course.title} className="w-16 h-16 object-cover rounded" />
-                  )}
-                  <div>
-                    <CardTitle className="text-lg">{course.title}</CardTitle>
-                    <p className="text-sm text-gray-600">{course.level} • {course.duration} • ${course.price}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleAddModule(course.id)}
-                  >
-                    <PlusCircle size={14} className="mr-1" />
-                    Add Module
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteCourse(course.id)}
-                  >
-                    <Trash size={14} />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-700 mb-4">{course.description}</p>
-              
-              {course.modules.length > 0 && (
-                <div>
-                  <h4 className="font-semibold mb-2">Modules ({course.modules.length})</h4>
-                  <div className="space-y-2">
-                    {course.modules.map((module) => (
-                      <div key={module.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                        <div>
-                          <p className="font-medium text-sm">{module.title}</p>
-                          <p className="text-xs text-gray-600">{module.duration}</p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteModule(course.id, module.id)}
-                        >
-                          <Trash size={12} />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleCourseDragEnd}
+      >
+        <SortableContext
+          items={courses.map((c) => c.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="grid gap-6">
+            {courses.map((course) => (
+              <SortableCourseCard
+                key={course.id}
+                course={course}
+                onAddModule={handleAddModule}
+                onDeleteCourse={handleDeleteCourse}
+                onDeleteModule={handleDeleteModule}
+                onReorderModules={handleModuleReorder}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {courses.length === 0 && !showAddForm && (
         <div className="text-center py-12 animate-fade-in">
-          <p className="text-gray-500 mb-4">No courses added yet</p>
+          <p className="text-muted-foreground mb-4">No courses added yet</p>
           <Button
             onClick={() => setShowAddForm(true)}
-            className="bg-purple-600 hover:bg-purple-700"
+            className="bg-primary hover:bg-primary/90"
           >
             <PlusCircle size={18} className="mr-2" />
             Add Your First Course
