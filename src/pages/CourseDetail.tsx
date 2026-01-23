@@ -3,9 +3,13 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Clock, DollarSign, BookOpen, Users, Play, CheckCircle, Star, Award, Globe } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
-import { useToast } from '@/hooks/use-toast'; // Import useToast for error handling
+import { ArrowLeft, Clock, DollarSign, BookOpen, Users, Play, CheckCircle, Star, Award, Globe, LogOut, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useEnrollment } from '@/hooks/useEnrollment';
+import { CourseProgress } from '@/components/CourseProgress';
+import { EnrollButton } from '@/components/EnrollButton';
 
 interface CourseModule {
   id: string;
@@ -27,11 +31,24 @@ interface Course {
 }
 
 const CourseDetail = () => {
-  const { courseId } = useParams<{ courseId: string }>(); // Specify type for useParams
+  const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
   const [course, setCourse] = useState<Course | null>(null);
-  const [loading, setLoading] = useState<boolean>(true); // Add loading state
-  const { toast } = useToast(); // Initialize toast
+  const [loading, setLoading] = useState<boolean>(true);
+  const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
+  const { 
+    isEnrolled, 
+    isLoading: enrollmentLoading,
+    moduleProgress,
+    completeModule,
+    uncompleteModule,
+    isModuleCompleted,
+    getProgressPercentage,
+    unenroll,
+    isCourseCompleted,
+    completeCourse,
+  } = useEnrollment(courseId);
 
   const DEFAULT_COURSE_IMAGE_URL = 'https://images.unsplash.com/photo-1510519138101-570d1dfa3d5f';
 
@@ -48,7 +65,6 @@ const CourseDetail = () => {
         return;
       }
 
-      // Fetch course data
       const { data: courseData, error: courseError } = await supabase
         .from('courses')
         .select('*')
@@ -67,7 +83,6 @@ const CourseDetail = () => {
         return;
       }
 
-      // Fetch modules for this course
       const { data: modulesData, error: modulesError } = await supabase
         .from('course_modules')
         .select('*')
@@ -99,20 +114,41 @@ const CourseDetail = () => {
     };
 
     fetchCourseDetails();
-  }, [courseId, toast]); // Re-fetch if courseId changes or toast instance changes
+  }, [courseId, toast]);
 
-  // Loading state
+  const handleModuleToggle = async (moduleId: string) => {
+    if (!isEnrolled) {
+      toast({
+        title: 'Enrollment Required',
+        description: 'Please enroll in this course to track your progress.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (isModuleCompleted(moduleId)) {
+      await uncompleteModule(moduleId);
+    } else {
+      await completeModule(moduleId);
+      
+      // Check if all modules are completed
+      if (course && moduleProgress.length + 1 === course.modules.length && !isCourseCompleted) {
+        await completeCourse();
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-2xl font-semibold text-gray-700 animate-pulse">Loading course details...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-purple-600 mx-auto mb-4" />
+          <p className="text-2xl font-semibold text-gray-700">Loading course details...</p>
         </div>
       </div>
     );
   }
 
-  // Course not found state
   if (!course) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
@@ -130,7 +166,6 @@ const CourseDetail = () => {
     );
   }
 
-  // Helper function for badge colors
   const getLevelColor = (level: string) => {
     switch (level) {
       case 'Beginner':
@@ -144,10 +179,11 @@ const CourseDetail = () => {
     }
   };
 
+  const progressPercentage = getProgressPercentage(course.modules.length);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-12">
       <div className="max-w-7xl mx-auto px-4">
-        {/* Back Button */}
         <Button 
           onClick={() => navigate('/')}
           variant="outline"
@@ -157,16 +193,17 @@ const CourseDetail = () => {
           Back to All Courses
         </Button>
 
-        {/* Hero Section with Course Image and Title */}
+        {/* Hero Section */}
         <div className="mb-12">
           <div className="relative">
             <div className="w-full h-80 md:h-96 overflow-hidden rounded-2xl shadow-2xl mb-8">
               <img 
-                src={course.image_url || DEFAULT_COURSE_IMAGE_URL} // Use image_url and fallback
+                src={course.image_url || DEFAULT_COURSE_IMAGE_URL}
                 alt={course.title}
                 className="w-full h-full object-cover"
-                onError={(e) => { // Fallback on image loading error
-                    (e.target as HTMLImageElement).src = DEFAULT_COURSE_IMAGE_URL;
+                loading="lazy"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = DEFAULT_COURSE_IMAGE_URL;
                 }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
@@ -183,10 +220,12 @@ const CourseDetail = () => {
                     <Clock className="w-5 h-5 mr-2" />
                     {course.duration}
                   </Badge>
-                  <Badge className="bg-white/20 backdrop-blur-lg text-white font-bold px-4 py-2 text-lg border border-white/30">
-                    <Globe className="w-5 h-5 mr-2" />
-                    Online Course
-                  </Badge>
+                  {isEnrolled && (
+                    <Badge className="bg-green-500/80 backdrop-blur-lg text-white font-bold px-4 py-2 text-lg border border-green-400/30">
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      {isCourseCompleted ? 'Completed' : `${progressPercentage}% Complete`}
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>
@@ -194,13 +233,65 @@ const CourseDetail = () => {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Course Information Cards */}
+          {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Quick Info Card */}
+            {/* Enrollment Card */}
             <Card className="shadow-xl border-2 border-purple-200">
               <CardHeader>
                 <CardTitle className="text-xl font-bold text-purple-800 flex items-center">
                   <BookOpen className="w-6 h-6 mr-2" />
+                  {isEnrolled ? 'Your Progress' : 'Get Started'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isEnrolled && (
+                  <CourseProgress 
+                    completedModules={moduleProgress.length}
+                    totalModules={course.modules.length}
+                    isCompleted={isCourseCompleted}
+                    size="lg"
+                  />
+                )}
+                
+                {!isEnrolled ? (
+                  <EnrollButton courseId={course.id} className="w-full text-lg py-6" />
+                ) : (
+                  <div className="space-y-3">
+                    {isCourseCompleted ? (
+                      <Button className="w-full bg-green-600 hover:bg-green-700 text-lg py-6">
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        Course Completed! 🎉
+                      </Button>
+                    ) : (
+                      <p className="text-center text-muted-foreground">
+                        Complete all modules to finish the course
+                      </p>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                      onClick={unenroll}
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Unenroll
+                    </Button>
+                  </div>
+                )}
+
+                {course.price > 0 && !isEnrolled && (
+                  <div className="flex items-center justify-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                    <DollarSign className="w-6 h-6 text-green-600 mr-1" />
+                    <span className="font-bold text-green-700 text-3xl">{course.price}</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Course Info Card */}
+            <Card className="shadow-xl border-2 border-purple-200">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-purple-800 flex items-center">
+                  <Star className="w-6 h-6 mr-2" />
                   Course Information
                 </CardTitle>
               </CardHeader>
@@ -215,16 +306,6 @@ const CourseDetail = () => {
                 
                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-200">
                   <div className="flex items-center space-x-3">
-                    <Award className="w-6 h-6 text-purple-600" />
-                    <span className="font-bold text-gray-800">Level</span>
-                  </div>
-                  <Badge className={`${getLevelColor(course.level)} font-bold px-3 py-1`}>
-                    {course.level}
-                  </Badge>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-200">
-                  <div className="flex items-center space-x-3">
                     <BookOpen className="w-6 h-6 text-purple-600" />
                     <span className="font-bold text-gray-800">Modules</span>
                   </div>
@@ -233,59 +314,18 @@ const CourseDetail = () => {
                 
                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-200">
                   <div className="flex items-center space-x-3">
-                    <Users className="w-6 h-6 text-purple-600" />
+                    <Globe className="w-6 h-6 text-purple-600" />
                     <span className="font-bold text-gray-800">Format</span>
                   </div>
                   <span className="font-bold text-purple-700">Online</span>
-                </div>
-
-                {course.price > 0 && (
-                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                    <div className="flex items-center space-x-3">
-                      <DollarSign className="w-6 h-6 text-green-600" />
-                      <span className="font-bold text-gray-800">Price</span>
-                    </div>
-                    <span className="font-bold text-green-700 text-2xl">${course.price}</span>
-                  </div>
-                )}
-                {/* Consider adding a "Buy Now" or "Enroll" button here if applicable */}
-              </CardContent>
-            </Card>
-
-            {/* Course Features */}
-            <Card className="shadow-xl border-2 border-purple-200">
-              <CardHeader>
-                <CardTitle className="text-xl font-bold text-purple-800 flex items-center">
-                  <Star className="w-6 h-6 mr-2" />
-                  What You'll Get
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3 text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>Lifetime Access</span>
-                  </div>
-                  <div className="flex items-center space-x-3 text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>Certificate of Completion</span>
-                  </div>
-                  <div className="flex items-center space-x-3 text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>Expert Support</span>
-                  </div>
-                  <div className="flex items-center space-x-3 text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>Mobile & Desktop Access</span>
-                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Course Content */}
+          {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Course Description */}
+            {/* Description */}
             <Card className="shadow-xl border-2 border-purple-200">
               <CardHeader>
                 <CardTitle className="text-2xl font-bold text-purple-800">
@@ -293,19 +333,13 @@ const CourseDetail = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-lg text-gray-700 leading-relaxed mb-6">
+                <p className="text-lg text-gray-700 leading-relaxed">
                   {course.description}
                 </p>
-                
-                {/* This button could link to an external platform or a "start learning" section if you have one */}
-                <Button className="w-full btn-primary text-xl py-6 font-bold shadow-xl">
-                  <Play className="w-6 h-6 mr-3" />
-                  Start Learning Now
-                </Button>
               </CardContent>
             </Card>
 
-            {/* Course Modules */}
+            {/* Modules */}
             {course.modules.length > 0 && (
               <Card className="shadow-xl border-2 border-purple-200">
                 <CardHeader>
@@ -315,29 +349,60 @@ const CourseDetail = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {course.modules.map((module, index) => (
-                      <div 
-                        key={module.id}
-                        className="flex items-center justify-between p-6 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border-2 border-purple-100 hover:border-purple-300 transition-all duration-300 hover:shadow-lg"
-                      >
-                        <div className="flex items-center space-x-4">
-                          <div className="w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
-                            {index + 1}
+                    {course.modules.map((module, index) => {
+                      const completed = isModuleCompleted(module.id);
+                      return (
+                        <div 
+                          key={module.id}
+                          className={`flex items-center justify-between p-6 rounded-xl border-2 transition-all duration-300 hover:shadow-lg cursor-pointer ${
+                            completed 
+                              ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' 
+                              : 'bg-gradient-to-r from-purple-50 to-blue-50 border-purple-100 hover:border-purple-300'
+                          }`}
+                          onClick={() => isEnrolled && handleModuleToggle(module.id)}
+                        >
+                          <div className="flex items-center space-x-4">
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
+                              completed 
+                                ? 'bg-green-500 text-white' 
+                                : 'bg-purple-600 text-white'
+                            }`}>
+                              {completed ? <CheckCircle className="w-6 h-6" /> : index + 1}
+                            </div>
+                            <div>
+                              <h3 className={`font-bold text-xl ${completed ? 'text-green-800' : 'text-gray-800'}`}>
+                                {module.title}
+                              </h3>
+                              {module.description && (
+                                <p className="text-gray-600 mt-1">{module.description}</p>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="font-bold text-xl text-gray-800">{module.title}</h3>
-                            {/* Display module description if available */}
-                            {module.description && <p className="text-gray-600 mt-1">{module.description}</p>}
+                          <div className="flex items-center space-x-4">
+                            <span className={`font-bold text-lg ${completed ? 'text-green-600' : 'text-purple-600'}`}>
+                              {module.duration}
+                            </span>
+                            {isEnrolled ? (
+                              completed ? (
+                                <CheckCircle className="w-6 h-6 text-green-500" />
+                              ) : (
+                                <Play className="w-6 h-6 text-purple-500" />
+                              )
+                            ) : (
+                              <Play className="w-6 h-6 text-gray-400" />
+                            )}
                           </div>
                         </div>
-                        <div className="flex items-center space-x-4">
-                          <span className="text-purple-600 font-bold text-lg">{module.duration}</span>
-                          {/* Consider dynamically showing if a module is completed/playable */}
-                          <Play className="w-6 h-6 text-purple-500 cursor-pointer hover:text-purple-700" />
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
+                  
+                  {!isEnrolled && isAuthenticated && (
+                    <div className="mt-6 text-center">
+                      <p className="text-muted-foreground mb-4">Enroll to track your progress through the modules</p>
+                      <EnrollButton courseId={course.id} />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}

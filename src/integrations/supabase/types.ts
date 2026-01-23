@@ -68,6 +68,38 @@ export type Database = {
         }
         Relationships: []
       }
+      course_enrollments: {
+        Row: {
+          completed_at: string | null
+          course_id: string
+          enrolled_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          course_id: string
+          enrolled_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          course_id?: string
+          enrolled_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_modules: {
         Row: {
           course_id: string
@@ -171,6 +203,45 @@ export type Database = {
           satisfaction?: string | null
         }
         Relationships: []
+      }
+      module_progress: {
+        Row: {
+          completed_at: string
+          course_id: string
+          id: string
+          module_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          course_id: string
+          id?: string
+          module_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          course_id?: string
+          id?: string
+          module_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_progress_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_progress_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

@@ -1,5 +1,6 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 interface User {
   id: string;
@@ -9,83 +10,126 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  supabaseUser: SupabaseUser | null;
+  session: Session | null;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string, name: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load user from localStorage on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('portfolio_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
-    }
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setSupabaseUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Fetch profile data
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+          
+          setUser({
+            id: session.user.id,
+            email: session.user.email || '',
+            name: profile?.full_name || session.user.user_metadata?.full_name || '',
+          });
+          setIsAuthenticated(true);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+        setIsLoading(false);
+      }
+    );
+
+    // THEN get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setSession(session);
+        setSupabaseUser(session.user);
+        
+        supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('user_id', session.user.id)
+          .maybeSingle()
+          .then(({ data: profile }) => {
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              name: profile?.full_name || session.user.user_metadata?.full_name || '',
+            });
+            setIsAuthenticated(true);
+            setIsLoading(false);
+          });
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // Simple mock login function
   const login = async (email: string, password: string): Promise<boolean> => {
-    // In a real app, this would validate credentials with a backend
-    const storedUsers = JSON.parse(localStorage.getItem('portfolio_users') || '[]');
-    const foundUser = storedUsers.find(
-      (u: any) => u.email === email && u.password === password
-    );
-    
-    if (foundUser) {
-      const { password, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      setIsAuthenticated(true);
-      localStorage.setItem('portfolio_user', JSON.stringify(userWithoutPassword));
-      return true;
-    }
-    return false;
-  };
-
-  // Simple mock signup function
-  const signup = async (email: string, password: string, name: string): Promise<boolean> => {
-    // In a real app, this would create a new user in the backend
-    const storedUsers = JSON.parse(localStorage.getItem('portfolio_users') || '[]');
-    
-    // Check if user already exists
-    if (storedUsers.some((u: any) => u.email === email)) {
-      return false;
-    }
-
-    const newUser = {
-      id: `user_${Date.now()}`,
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
-      name,
-    };
+    });
     
-    storedUsers.push(newUser);
-    localStorage.setItem('portfolio_users', JSON.stringify(storedUsers));
-    
-    // Auto login after signup
-    const { password: _, ...userWithoutPassword } = newUser;
-    setUser(userWithoutPassword);
-    setIsAuthenticated(true);
-    localStorage.setItem('portfolio_user', JSON.stringify(userWithoutPassword));
-    
-    return true;
+    return !error;
   };
 
-  // Logout function
-  const logout = () => {
+  const signup = async (email: string, password: string, name: string): Promise<boolean> => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: {
+          full_name: name,
+        },
+      },
+    });
+    
+    return !error;
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
+    setSupabaseUser(null);
+    setSession(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('portfolio_user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      supabaseUser, 
+      session, 
+      login, 
+      signup, 
+      logout, 
+      isAuthenticated,
+      isLoading 
+    }}>
       {children}
     </AuthContext.Provider>
   );
