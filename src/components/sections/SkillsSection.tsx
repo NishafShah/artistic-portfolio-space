@@ -12,7 +12,7 @@ interface Skill {
   level: number;
   category: string;
   icon?: string;
-  imageUrl?: string;
+  image_url?: string;
 }
 
 const SkillsSection = () => {
@@ -35,14 +35,10 @@ const SkillsSection = () => {
           const bucketBase = 'https://plzmnpbzqbmdbbxdpgwi.supabase.co/storage/v1/object/public/skill-icons';
 
           const skillsWithImage = data.map((skill) => {
-            if (!skill.imageUrl) {
+            if (!skill.image_url) {
               const safeName = skill.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-              const extensions = ['.png', '.jpeg', '.jpg'];
-
-              for (let ext of extensions) {
-                const url = `${bucketBase}/${safeName}${ext}`;
-                return { ...skill, imageUrl: url }; // naive guess; you can enhance with head-check if needed
-              }
+              const url = `${bucketBase}/${safeName}.png`;
+              return { ...skill, image_url: url };
             }
             return skill;
           });
@@ -142,9 +138,9 @@ const SkillsSection = () => {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
-                              {skill.imageUrl ? (
+                              {skill.image_url ? (
                                 <img
-                                  src={skill.imageUrl}
+                                  src={skill.image_url}
                                   alt={skill.name}
                                   onError={(e) => {
                                     (e.target as HTMLImageElement).style.display = 'none';

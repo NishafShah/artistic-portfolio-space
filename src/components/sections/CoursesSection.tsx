@@ -3,66 +3,121 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Clock, DollarSign, Users, Play, Star, Zap, User } from 'lucide-react';
+import { BookOpen, Clock, DollarSign, Users, Play, Star, Zap, User, ImageOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
-import { useToast } from '@/hooks/use-toast'; // Import useToast for error handling
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
-// Define the Course interface to match your Supabase table schema
-// Ensure the keys match your Supabase column names (e.g., 'image_url' instead of 'image')
+interface CourseModule {
+  id: string;
+  title: string;
+  duration: string;
+}
+
 interface Course {
   id: string;
   title: string;
   description: string;
-  image_url: string | null; // Changed from 'image' to 'image_url' for Supabase schema, allow null
+  image_url: string | null;
   level: string;
   duration: string;
   price: number;
-  modules: Array<{ id: string; title: string; duration: string }>;
-  order_index?: number; // Assuming you might have an order_index for sorting
+  modules: CourseModule[];
+  order_index?: number;
 }
+
+const DEFAULT_COURSE_IMAGE = '/placeholder.svg';
+
+const CourseImage = ({ src, alt }: { src: string | null; alt: string }) => {
+  const [imageSrc, setImageSrc] = useState<string>(src || DEFAULT_COURSE_IMAGE);
+  const [hasError, setHasError] = useState(false);
+
+  const handleError = () => {
+    setHasError(true);
+    setImageSrc(DEFAULT_COURSE_IMAGE);
+  };
+
+  if (hasError && !src) {
+    return (
+      <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
+        <ImageOff className="w-12 h-12 text-gray-400" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={imageSrc}
+      alt={alt}
+      loading="lazy"
+      className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-700"
+      onError={handleError}
+    />
+  );
+};
 
 const CoursesSection = () => {
   const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
   const [visibleCourses, setVisibleCourses] = useState<number>(0);
   const { isAuthenticated } = useAuth();
-  const { toast } = useToast(); // Initialize toast
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchCourses = async () => {
-      const { data, error } = await supabase
-        .from('courses') // Ensure 'courses' is your actual table name
-        .select('*')
-        .order('order_index', { ascending: true }); // Order by order_index if you have one
+      setLoading(true);
+      try {
+        // Fetch courses
+        const { data: coursesData, error: coursesError } = await supabase
+          .from('courses')
+          .select('*')
+          .order('order_index', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching courses:', error.message);
+        if (coursesError) throw coursesError;
+
+        // Fetch all modules
+        const { data: modulesData, error: modulesError } = await supabase
+          .from('course_modules')
+          .select('*')
+          .order('order_index', { ascending: true });
+
+        if (modulesError) throw modulesError;
+
+        // Map courses with their modules
+        const formattedCourses: Course[] = coursesData.map((course) => ({
+          id: course.id,
+          title: course.title,
+          description: course.description,
+          image_url: course.image_url,
+          level: course.level,
+          duration: course.duration || '',
+          price: course.price || 0,
+          modules: (modulesData || [])
+            .filter(m => m.course_id === course.id)
+            .map(m => ({
+              id: m.id,
+              title: m.title,
+              duration: m.duration || '',
+            })),
+          order_index: course.order_index,
+        }));
+        
+        setCourses(formattedCourses);
+      } catch (error) {
+        console.error('Error fetching courses:', error);
         toast({
           title: "Error",
           description: "Failed to load courses. Please try again later.",
           variant: "destructive",
         });
-      } else {
-        // Map Supabase data to your frontend Course interface if column names differ
-        const formattedCourses: Course[] = data.map((course: any) => ({
-          id: course.id,
-          title: course.title,
-          description: course.description,
-          image_url: course.image_url, // Assuming Supabase column is 'image_url'
-          level: course.level,
-          duration: course.duration,
-          price: course.price,
-          // Ensure modules is an array, as it might be stored as JSONB
-          modules: Array.isArray(course.modules) ? course.modules : [],
-          order_index: course.order_index,
-        }));
-        setCourses(formattedCourses);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchCourses();
-  }, [toast]); // Added toast to dependency array
+  }, [toast]);
 
   useEffect(() => {
     if (courses.length > 0) {
@@ -74,7 +129,24 @@ const CoursesSection = () => {
     }
   }, [courses]);
 
-  const DEFAULT_COURSE_IMAGE_URL = 'https://images.unsplash.com/photo-1510519138101-570d1dfa3d5f'; // Add a default image URL
+  // Loading state
+  if (loading) {
+    return (
+      <section id="courses" className="py-24 px-4 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 reveal">
+        <div className="max-w-6xl mx-auto text-center">
+          <div className="animate-pulse">
+            <div className="h-12 bg-gray-200 rounded-full w-64 mx-auto mb-8"></div>
+            <div className="h-16 bg-gray-200 rounded w-96 mx-auto mb-8"></div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="bg-white rounded-lg h-96"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   // Renders when no courses are available
   if (courses.length === 0) {
@@ -173,16 +245,9 @@ const CoursesSection = () => {
             >
               <div className="absolute inset-0 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 rounded-lg opacity-0 group-hover:opacity-20 transition-opacity duration-500 animate-gradient"></div>
 
-              {/* Display course image */}
+              {/* Display course image with lazy loading */}
               <div className="aspect-video overflow-hidden rounded-t-lg relative">
-                <img
-                  src={course.image_url || DEFAULT_COURSE_IMAGE_URL} // Use default if image_url is null or empty
-                  alt={course.title}
-                  className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-700"
-                  onError={(e) => { // Fallback on image loading error
-                    (e.target as HTMLImageElement).src = DEFAULT_COURSE_IMAGE_URL;
-                  }}
-                />
+                <CourseImage src={course.image_url} alt={course.title} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-lg rounded-full px-4 py-2 opacity-0 group-hover:opacity-100 transition-all duration-500">
                   <span className="text-white font-bold text-sm flex items-center">
