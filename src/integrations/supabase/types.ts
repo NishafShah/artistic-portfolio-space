@@ -312,6 +312,36 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          created_at: string
+          id: string
+          is_approved: boolean | null
+          rating: number
+          review_text: string
+          reviewer_email: string
+          reviewer_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_approved?: boolean | null
+          rating: number
+          review_text: string
+          reviewer_email: string
+          reviewer_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_approved?: boolean | null
+          rating?: number
+          review_text?: string
+          reviewer_email?: string
+          reviewer_name?: string
+        }
+        Relationships: []
+      }
       skills: {
         Row: {
           category: string
