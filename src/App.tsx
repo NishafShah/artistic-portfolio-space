@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +10,8 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import CourseDetail from "./pages/CourseDetail";
 import NotFound from "./pages/NotFound";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPassword from "./pages/ResetPassword";
 import { HelmetProvider } from 'react-helmet-async';
 
 
@@ -31,6 +32,8 @@ const AppRoutes = () => {
       <Route path="/" element={<Index />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/course/:courseId" element={<CourseDetail />} />
       <Route 
         path="/dashboard" 

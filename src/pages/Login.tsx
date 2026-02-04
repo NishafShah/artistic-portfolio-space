@@ -147,6 +147,11 @@ const Login = () => {
             </Link>
           </div>
           <div className="text-center text-sm">
+            <Link to="/forgot-password" className="text-purple-600 hover:underline">
+              Forgot Password?
+            </Link>
+          </div>
+          <div className="text-center text-sm">
             <Link to="/" className="text-gray-500 hover:text-purple-600 transition-colors">
               ← Back to Portfolio
             </Link>
