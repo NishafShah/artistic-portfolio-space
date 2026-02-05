@@ -58,6 +58,21 @@ export const ReviewForm = ({ onSuccess }: ReviewFormProps) => {
 
       if (error) throw error;
 
+      // Send email notification (fire and forget - don't block on failure)
+      fetch('https://plzmnpbzqbmdbbxdpgwi.supabase.co/functions/v1/review-notification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsem1ucGJ6cWJtZGJieGRwZ3dpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwMTA0NjIsImV4cCI6MjA2ODU4NjQ2Mn0._UeV30YVj68ivtbQubAhU3fZVf9MgzfRZvSh31btZcw`,
+        },
+        body: JSON.stringify({
+          reviewerName: result.data.name,
+          reviewerEmail: result.data.email,
+          rating: result.data.rating,
+          reviewText: result.data.review,
+        }),
+      }).catch(console.error);
+
       toast({
         title: 'Review Submitted!',
         description: 'Thank you for your feedback. Your review will be visible after approval.',
