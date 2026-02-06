@@ -223,12 +223,26 @@ const ReviewsSection = () => {
                   </Card>
                 ))}
               </div>
-            ) : reviews.length > 0 ? (
+            ) : filteredAndSortedReviews.length > 0 ? (
               <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-                {reviews.map((review) => (
+                {filteredAndSortedReviews.map((review) => (
                   <ReviewCard key={review.id} review={review} />
                 ))}
               </div>
+            ) : reviews.length > 0 ? (
+              <Card className="bg-white/80 backdrop-blur-lg border-2 border-purple-100">
+                <CardContent className="p-8 text-center">
+                  <Filter className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                  <p className="text-gray-500">No reviews match your filters.</p>
+                  <Button 
+                    variant="link" 
+                    onClick={resetFilters}
+                    className="text-purple-600 mt-2"
+                  >
+                    Clear filters
+                  </Button>
+                </CardContent>
+              </Card>
             ) : (
               <Card className="bg-white/80 backdrop-blur-lg border-2 border-purple-100">
                 <CardContent className="p-8 text-center">
