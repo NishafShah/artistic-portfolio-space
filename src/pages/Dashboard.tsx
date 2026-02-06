@@ -15,6 +15,7 @@ import SkillsManager from '@/components/dashboard/SkillsManager';
 import CoursesManager from '@/components/dashboard/CoursesManager';
 import ResumeManager from '@/components/dashboard/ResumeManager';
 import AboutManager from '@/components/dashboard/AboutManager';
+import ReviewsManager from '@/components/dashboard/ReviewsManager';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
