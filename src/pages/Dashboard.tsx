@@ -45,10 +45,11 @@ const Dashboard = () => {
         </div>
 
         <Tabs defaultValue="projects" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-8 animate-fade-in">
+          <TabsList className="grid w-full grid-cols-6 mb-8 animate-fade-in">
             <TabsTrigger value="projects" className="transition-all duration-300 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-800">Projects</TabsTrigger>
             <TabsTrigger value="skills" className="transition-all duration-300 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-800">Skills</TabsTrigger>
             <TabsTrigger value="courses" className="transition-all duration-300 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-800">Courses</TabsTrigger>
+            <TabsTrigger value="reviews" className="transition-all duration-300 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-800">Reviews</TabsTrigger>
             <TabsTrigger value="resume" className="transition-all duration-300 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-800">Resume</TabsTrigger>
             <TabsTrigger value="about" className="transition-all duration-300 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-800">About</TabsTrigger>
           </TabsList>
@@ -63,6 +64,10 @@ const Dashboard = () => {
           
           <TabsContent value="courses">
             <CoursesManager />
+          </TabsContent>
+          
+          <TabsContent value="reviews">
+            <ReviewsManager />
           </TabsContent>
           
           <TabsContent value="resume">
