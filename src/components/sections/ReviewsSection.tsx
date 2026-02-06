@@ -1,10 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StarRating } from '@/components/reviews/StarRating';
 import { ReviewCard } from '@/components/reviews/ReviewCard';
 import { ReviewForm } from '@/components/reviews/ReviewForm';
 import { supabase } from '@/integrations/supabase/client';
-import { MessageSquare, Star, TrendingUp, Users } from 'lucide-react';
+import { MessageSquare, Star, TrendingUp, Users, Filter, ArrowUpDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Review {
   id: string;
@@ -14,10 +22,15 @@ interface Review {
   created_at: string;
 }
 
+type RatingFilter = 'all' | '5' | '4' | '3' | '2' | '1';
+type SortOption = 'newest' | 'oldest' | 'highest' | 'lowest';
+
 const ReviewsSection = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [averageRating, setAverageRating] = useState(0);
+  const [ratingFilter, setRatingFilter] = useState<RatingFilter>('all');
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
 
   const fetchReviews = async () => {
     setLoading(true);
@@ -25,8 +38,7 @@ const ReviewsSection = () => {
       .from('reviews')
       .select('id, reviewer_name, rating, review_text, created_at')
       .eq('is_approved', true)
-      .order('created_at', { ascending: false })
-      .limit(6);
+      .order('created_at', { ascending: false });
 
     if (!error && data) {
       setReviews(data);
@@ -43,6 +55,39 @@ const ReviewsSection = () => {
   useEffect(() => {
     fetchReviews();
   }, []);
+
+  const filteredAndSortedReviews = useMemo(() => {
+    let result = [...reviews];
+
+    // Apply rating filter
+    if (ratingFilter !== 'all') {
+      const filterRating = parseInt(ratingFilter);
+      result = result.filter(r => r.rating === filterRating);
+    }
+
+    // Apply sorting
+    switch (sortOption) {
+      case 'newest':
+        result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+      case 'oldest':
+        result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        break;
+      case 'highest':
+        result.sort((a, b) => b.rating - a.rating);
+        break;
+      case 'lowest':
+        result.sort((a, b) => a.rating - b.rating);
+        break;
+    }
+
+    return result;
+  }, [reviews, ratingFilter, sortOption]);
+
+  const resetFilters = () => {
+    setRatingFilter('all');
+    setSortOption('newest');
+  };
 
   return (
     <section id="reviews" className="py-24 px-4 bg-gradient-to-br from-purple-50 via-white to-blue-50 reveal relative overflow-hidden">
