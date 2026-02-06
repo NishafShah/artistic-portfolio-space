@@ -24,6 +24,7 @@ const ReviewsSection = () => {
     const { data, error } = await supabase
       .from('reviews')
       .select('id, reviewer_name, rating, review_text, created_at')
+      .eq('is_approved', true)
       .order('created_at', { ascending: false })
       .limit(6);
 
