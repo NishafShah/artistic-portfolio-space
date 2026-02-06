@@ -1,10 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StarRating } from '@/components/reviews/StarRating';
 import { ReviewCard } from '@/components/reviews/ReviewCard';
 import { ReviewForm } from '@/components/reviews/ReviewForm';
 import { supabase } from '@/integrations/supabase/client';
-import { MessageSquare, Star, TrendingUp, Users } from 'lucide-react';
+import { MessageSquare, Star, TrendingUp, Users, Filter, ArrowUpDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Review {
   id: string;
@@ -14,10 +22,15 @@ interface Review {
   created_at: string;
 }
 
+type RatingFilter = 'all' | '5' | '4' | '3' | '2' | '1';
+type SortOption = 'newest' | 'oldest' | 'highest' | 'lowest';
+
 const ReviewsSection = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [averageRating, setAverageRating] = useState(0);
+  const [ratingFilter, setRatingFilter] = useState<RatingFilter>('all');
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
 
   const fetchReviews = async () => {
     setLoading(true);
@@ -25,8 +38,7 @@ const ReviewsSection = () => {
       .from('reviews')
       .select('id, reviewer_name, rating, review_text, created_at')
       .eq('is_approved', true)
-      .order('created_at', { ascending: false })
-      .limit(6);
+      .order('created_at', { ascending: false });
 
     if (!error && data) {
       setReviews(data);
@@ -43,6 +55,39 @@ const ReviewsSection = () => {
   useEffect(() => {
     fetchReviews();
   }, []);
+
+  const filteredAndSortedReviews = useMemo(() => {
+    let result = [...reviews];
+
+    // Apply rating filter
+    if (ratingFilter !== 'all') {
+      const filterRating = parseInt(ratingFilter);
+      result = result.filter(r => r.rating === filterRating);
+    }
+
+    // Apply sorting
+    switch (sortOption) {
+      case 'newest':
+        result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+      case 'oldest':
+        result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        break;
+      case 'highest':
+        result.sort((a, b) => b.rating - a.rating);
+        break;
+      case 'lowest':
+        result.sort((a, b) => a.rating - b.rating);
+        break;
+    }
+
+    return result;
+  }, [reviews, ratingFilter, sortOption]);
+
+  const resetFilters = () => {
+    setRatingFilter('all');
+    setSortOption('newest');
+  };
 
   return (
     <section id="reviews" className="py-24 px-4 bg-gradient-to-br from-purple-50 via-white to-blue-50 reveal relative overflow-hidden">
@@ -107,10 +152,59 @@ const ReviewsSection = () => {
         <div className="grid lg:grid-cols-2 gap-12">
           {/* Reviews List */}
           <div className="space-y-6">
-            <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              <MessageSquare className="w-6 h-6 text-purple-600" />
-              Recent Reviews
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <MessageSquare className="w-6 h-6 text-purple-600" />
+                Reviews ({filteredAndSortedReviews.length})
+              </h3>
+              
+              {reviews.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-muted-foreground" />
+                    <Select value={ratingFilter} onValueChange={(v) => setRatingFilter(v as RatingFilter)}>
+                      <SelectTrigger className="w-[130px] h-9 bg-white/80">
+                        <SelectValue placeholder="Rating" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Ratings</SelectItem>
+                        <SelectItem value="5">5 Stars</SelectItem>
+                        <SelectItem value="4">4 Stars</SelectItem>
+                        <SelectItem value="3">3 Stars</SelectItem>
+                        <SelectItem value="2">2 Stars</SelectItem>
+                        <SelectItem value="1">1 Star</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                    <Select value={sortOption} onValueChange={(v) => setSortOption(v as SortOption)}>
+                      <SelectTrigger className="w-[130px] h-9 bg-white/80">
+                        <SelectValue placeholder="Sort by" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Newest</SelectItem>
+                        <SelectItem value="oldest">Oldest</SelectItem>
+                        <SelectItem value="highest">Highest Rated</SelectItem>
+                        <SelectItem value="lowest">Lowest Rated</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {(ratingFilter !== 'all' || sortOption !== 'newest') && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={resetFilters}
+                      className="text-purple-600 hover:text-purple-800"
+                    >
+                      Reset
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
             
             {loading ? (
               <div className="space-y-4">
@@ -129,12 +223,26 @@ const ReviewsSection = () => {
                   </Card>
                 ))}
               </div>
-            ) : reviews.length > 0 ? (
+            ) : filteredAndSortedReviews.length > 0 ? (
               <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-                {reviews.map((review) => (
+                {filteredAndSortedReviews.map((review) => (
                   <ReviewCard key={review.id} review={review} />
                 ))}
               </div>
+            ) : reviews.length > 0 ? (
+              <Card className="bg-white/80 backdrop-blur-lg border-2 border-purple-100">
+                <CardContent className="p-8 text-center">
+                  <Filter className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                  <p className="text-gray-500">No reviews match your filters.</p>
+                  <Button 
+                    variant="link" 
+                    onClick={resetFilters}
+                    className="text-purple-600 mt-2"
+                  >
+                    Clear filters
+                  </Button>
+                </CardContent>
+              </Card>
             ) : (
               <Card className="bg-white/80 backdrop-blur-lg border-2 border-purple-100">
                 <CardContent className="p-8 text-center">
