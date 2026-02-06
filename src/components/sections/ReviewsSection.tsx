@@ -152,10 +152,59 @@ const ReviewsSection = () => {
         <div className="grid lg:grid-cols-2 gap-12">
           {/* Reviews List */}
           <div className="space-y-6">
-            <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              <MessageSquare className="w-6 h-6 text-purple-600" />
-              Recent Reviews
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <MessageSquare className="w-6 h-6 text-purple-600" />
+                Reviews ({filteredAndSortedReviews.length})
+              </h3>
+              
+              {reviews.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-muted-foreground" />
+                    <Select value={ratingFilter} onValueChange={(v) => setRatingFilter(v as RatingFilter)}>
+                      <SelectTrigger className="w-[130px] h-9 bg-white/80">
+                        <SelectValue placeholder="Rating" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Ratings</SelectItem>
+                        <SelectItem value="5">5 Stars</SelectItem>
+                        <SelectItem value="4">4 Stars</SelectItem>
+                        <SelectItem value="3">3 Stars</SelectItem>
+                        <SelectItem value="2">2 Stars</SelectItem>
+                        <SelectItem value="1">1 Star</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                    <Select value={sortOption} onValueChange={(v) => setSortOption(v as SortOption)}>
+                      <SelectTrigger className="w-[130px] h-9 bg-white/80">
+                        <SelectValue placeholder="Sort by" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Newest</SelectItem>
+                        <SelectItem value="oldest">Oldest</SelectItem>
+                        <SelectItem value="highest">Highest Rated</SelectItem>
+                        <SelectItem value="lowest">Lowest Rated</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {(ratingFilter !== 'all' || sortOption !== 'newest') && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={resetFilters}
+                      className="text-purple-600 hover:text-purple-800"
+                    >
+                      Reset
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
             
             {loading ? (
               <div className="space-y-4">
