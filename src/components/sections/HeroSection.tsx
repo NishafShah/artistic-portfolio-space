@@ -1,32 +1,21 @@
-import {
-  ChevronDown,
-  Download,
-  MessageCircle,
-  Eye,
-  Edit,
-  Check,
-  X,
-  Upload,
-} from 'lucide-react';
+import { ChevronDown, Download, MessageCircle, Eye, Edit, Check, X, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import EditableHeroStats from '@/components/EditableHeroStats';
 import { supabase } from '@/integrations/supabase/client';
 
-const HeroSection = () => {
+const HeroSection = memo(() => {
   const { isAuthenticated } = useAuth();
   const [heroImage, setHeroImage] = useState(
-    'https://images.unsplash.com/photo-1498050108023-c5249f4df085'
+    'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&q=80'
   );
   const [isEditingImage, setIsEditingImage] = useState(false);
   const [tempImageUrl, setTempImageUrl] = useState('');
-
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [resumeName, setResumeName] = useState<string>('Resume.pdf');
 
-  // 🔄 Fetch resume from Supabase on mount
   useEffect(() => {
     const storedImage = localStorage.getItem('portfolio_hero_image');
     if (storedImage) {
@@ -41,10 +30,7 @@ const HeroSection = () => {
           sortBy: { column: 'created_at', order: 'desc' },
         });
 
-      if (error || !data || data.length === 0) {
-        console.warn('No resume found in Supabase:', error);
-        return;
-      }
+      if (error || !data || data.length === 0) return;
 
       const latest = data[0];
       setResumeName(latest.name);
@@ -59,11 +45,11 @@ const HeroSection = () => {
     fetchResumeFromSupabase();
   }, []);
 
-  const handleHireMe = () => {
+  const handleHireMe = useCallback(() => {
     document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
-  const handleDownloadResume = () => {
+  const handleDownloadResume = useCallback(() => {
     if (!resumeUrl) return;
     const link = document.createElement('a');
     link.href = resumeUrl;
@@ -71,7 +57,11 @@ const HeroSection = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
+  }, [resumeUrl, resumeName]);
+
+  const handleViewWork = useCallback(() => {
+    document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -102,86 +92,84 @@ const HeroSection = () => {
   return (
     <section
       id="home"
-      className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 px-4 relative overflow-hidden"
+      className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 px-4 sm:px-6 lg:px-8 relative overflow-hidden pt-16 sm:pt-20"
     >
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-float"></div>
-        <div
-          className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-float"
-          style={{ animationDelay: '2s' }}
-        ></div>
-        <div
-          className="absolute top-40 left-1/2 w-80 h-80 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-float"
-          style={{ animationDelay: '4s' }}
-        ></div>
+      {/* Animated background elements - simplified for performance */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-20 -right-20 sm:-top-40 sm:-right-40 w-40 h-40 sm:w-80 sm:h-80 bg-purple-300/50 rounded-full mix-blend-multiply filter blur-xl animate-float" />
+        <div 
+          className="absolute -bottom-20 -left-20 sm:-bottom-40 sm:-left-40 w-40 h-40 sm:w-80 sm:h-80 bg-blue-300/50 rounded-full mix-blend-multiply filter blur-xl animate-float" 
+          style={{ animationDelay: '2s' }} 
+        />
       </div>
 
-      <div className="flex flex-col lg:flex-row items-center justify-between max-w-7xl mx-auto relative z-10 gap-12">
+      <div className="flex flex-col lg:flex-row items-center justify-between max-w-7xl mx-auto relative z-10 gap-8 lg:gap-12 py-8 sm:py-12">
         {/* Left side - Content */}
-        <div className="text-center lg:text-left lg:flex-1 lg:pr-8">
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-purple-200 text-purple-700 font-medium mb-6 animate-bounce-slow">
-            <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+        <div className="text-center lg:text-left lg:flex-1 lg:pr-8 w-full">
+          <div className="inline-flex items-center px-3 sm:px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-purple-200 text-purple-700 font-medium text-sm sm:text-base mb-4 sm:mb-6">
+            <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" />
             Welcome to my digital space
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-heading font-black text-gray-800 mb-6 leading-tight">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-heading font-black text-gray-800 mb-4 sm:mb-6 leading-tight">
             Hello, I'm{' '}
-            <span className="text-gradient animate-gradient relative">
-              Nishaf Shah
-              <div className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
-            </span>
+            <span className="text-gradient block sm:inline">Nishaf Shah</span>
           </h1>
 
-          <p className="text-xl md:text-2xl text-gray-600 mb-8 leading-relaxed font-primary">
+          <p className="text-base sm:text-xl md:text-2xl text-gray-600 mb-6 sm:mb-8 leading-relaxed font-primary max-w-2xl mx-auto lg:mx-0">
             Full Stack Developer & UI/UX Designer, crafting{' '}
             <span className="text-gradient-secondary font-semibold">beautiful</span> and{' '}
             <span className="text-gradient font-semibold">functional</span> digital experiences.
           </p>
 
-          <div className="flex flex-wrap gap-4 justify-center lg:justify-start mb-8">
-            <Button onClick={handleHireMe} className="btn-primary group" size="lg">
-              <MessageCircle className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 justify-center lg:justify-start mb-6 sm:mb-8">
+            <Button 
+              onClick={handleHireMe} 
+              className="btn-primary w-full sm:w-auto text-sm sm:text-base px-6 py-3" 
+              size="lg"
+            >
+              <MessageCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
               Hire Me
             </Button>
             <Button
               onClick={handleDownloadResume}
-              className="btn-secondary group"
+              className="btn-secondary w-full sm:w-auto text-sm sm:text-base px-6 py-3"
               size="lg"
               disabled={!resumeUrl}
             >
-              <Download className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
+              <Download className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
               Download CV
             </Button>
             <Button
-              onClick={() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={handleViewWork}
               variant="outline"
-              className="px-8 py-3 border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white font-semibold rounded-xl transition-all duration-300 hover:scale-105 group"
+              className="w-full sm:w-auto px-6 py-3 border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white font-semibold rounded-xl transition-colors text-sm sm:text-base"
               size="lg"
             >
-              <Eye className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
+              <Eye className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
               View My Work
             </Button>
           </div>
 
-          {/* Stats */}
           <EditableHeroStats />
         </div>
 
         {/* Right side - Image */}
-        <div className="lg:flex-1 flex justify-center lg:justify-end">
-          <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-3xl blur-2xl opacity-25 group-hover:opacity-40 transition-opacity duration-500 transform group-hover:scale-110"></div>
-            <div className="relative bg-white p-2 rounded-3xl shadow-2xl transform group-hover:scale-105 transition-all duration-500">
+        <div className="lg:flex-1 flex justify-center lg:justify-end w-full max-w-md lg:max-w-none">
+          <div className="relative group w-full max-w-sm sm:max-w-md lg:max-w-lg">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl sm:rounded-3xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500" />
+            <div className="relative bg-white p-1.5 sm:p-2 rounded-2xl sm:rounded-3xl shadow-xl">
               <img
                 src={heroImage}
                 alt="Developer workspace"
-                className="w-full max-w-lg mx-auto rounded-2xl shadow-xl"
+                className="w-full rounded-xl sm:rounded-2xl"
+                loading="eager"
+                width={512}
+                height={341}
               />
-              <div className="absolute inset-2 bg-gradient-to-t from-black/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
               {isAuthenticated && (
-                <div className="absolute top-4 right-4">
+                <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
                   {!isEditingImage ? (
                     <Button
                       variant="outline"
@@ -227,14 +215,17 @@ const HeroSection = () => {
         </div>
       </div>
 
-      <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce">
-        <div className="w-6 h-10 border-2 border-purple-600 rounded-full flex justify-center">
-          <div className="w-1 h-3 bg-purple-600 rounded-full mt-2 animate-pulse"></div>
+      {/* Scroll indicator - hidden on mobile */}
+      <div className="hidden sm:block absolute bottom-6 sm:bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce">
+        <div className="w-5 h-8 sm:w-6 sm:h-10 border-2 border-purple-600 rounded-full flex justify-center">
+          <div className="w-1 h-2 sm:h-3 bg-purple-600 rounded-full mt-1.5 sm:mt-2 animate-pulse" />
         </div>
-        <ChevronDown size={24} className="text-purple-600 mx-auto mt-2" />
+        <ChevronDown size={20} className="text-purple-600 mx-auto mt-1 sm:mt-2" />
       </div>
     </section>
   );
-};
+});
+
+HeroSection.displayName = 'HeroSection';
 
 export default HeroSection;
