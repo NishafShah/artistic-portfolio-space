@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Code, Database, Palette, Settings, User } from 'lucide-react';
@@ -15,9 +15,82 @@ interface Skill {
   image_url?: string;
 }
 
-const SkillsSection = () => {
+const SkillBar = memo(({ skill }: { skill: Skill }) => (
+  <div className="space-y-2 group/skill">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center space-x-2 sm:space-x-3">
+        {skill.image_url ? (
+          <img
+            src={skill.image_url}
+            alt={skill.name}
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+            className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover"
+            loading="lazy"
+          />
+        ) : skill.icon ? (
+          <span className="text-xl sm:text-2xl">{skill.icon}</span>
+        ) : (
+          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-bold">
+            {skill.name.charAt(0)}
+          </div>
+        )}
+        <span className="font-semibold text-sm sm:text-base text-gray-700">{skill.name}</span>
+      </div>
+      <span className="text-xs sm:text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 sm:py-1 rounded-full">
+        {skill.level}%
+      </span>
+    </div>
+    <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3 overflow-hidden">
+      <div
+        className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-1000 ease-out"
+        style={{ width: `${skill.level}%` }}
+      />
+    </div>
+  </div>
+));
+
+SkillBar.displayName = 'SkillBar';
+
+const CategoryCard = memo(({ 
+  category, 
+  skills, 
+  icon 
+}: { 
+  category: string; 
+  skills: Skill[]; 
+  icon: React.ReactNode;
+}) => (
+  <Card className="p-4 sm:p-6 bg-white/80 backdrop-blur-lg border-2 border-gray-200 hover:border-blue-300 hover:shadow-xl transition-all duration-300 group">
+    <CardContent className="p-0">
+      <div className="flex items-center mb-4 sm:mb-6">
+        <div className="p-2 sm:p-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg sm:rounded-xl text-white">
+          {icon}
+        </div>
+        <h3 className="text-base sm:text-xl font-bold ml-3 sm:ml-4 text-gray-800">
+          {category === 'Language' ? 'Programming Languages' : 'Frameworks & Tools'} ({skills.length})
+        </h3>
+      </div>
+
+      <div className="space-y-3 sm:space-y-4">
+        {skills.map((skill) => (
+          <SkillBar key={skill.id} skill={skill} />
+        ))}
+      </div>
+    </CardContent>
+  </Card>
+));
+
+CategoryCard.displayName = 'CategoryCard';
+
+const SkillsSection = memo(() => {
   const [skills, setSkills] = useState<Skill[]>([]);
+  const [loading, setLoading] = useState(true);
   const { isAuthenticated } = useAuth();
+
+  const categories = ['Language', 'Framework'];
+  const BUCKET_BASE = 'https://plzmnpbzqbmdbbxdpgwi.supabase.co/storage/v1/object/public/skill-icons';
 
   useEffect(() => {
     const loadSkills = async () => {
@@ -28,17 +101,15 @@ const SkillsSection = () => {
           .order('category', { ascending: true });
 
         if (error) {
-          console.error('❌ Supabase fetch error:', error.message);
+          console.error('Supabase fetch error:', error.message);
+          return;
         }
 
         if (data) {
-          const bucketBase = 'https://plzmnpbzqbmdbbxdpgwi.supabase.co/storage/v1/object/public/skill-icons';
-
           const skillsWithImage = data.map((skill) => {
             if (!skill.image_url) {
               const safeName = skill.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-              const url = `${bucketBase}/${safeName}.png`;
-              return { ...skill, image_url: url };
+              return { ...skill, image_url: `${BUCKET_BASE}/${safeName}.png` };
             }
             return skill;
           });
@@ -46,55 +117,59 @@ const SkillsSection = () => {
           setSkills(skillsWithImage);
         }
       } catch (err) {
-        console.error('❌ Unexpected error fetching skills from Supabase:', err);
+        console.error('Unexpected error fetching skills:', err);
+      } finally {
+        setLoading(false);
       }
     };
 
     loadSkills();
 
-    window.addEventListener('skillsUpdated', loadSkills);
-    return () => {
-      window.removeEventListener('skillsUpdated', loadSkills);
-    };
+    const handleSkillsUpdate = () => loadSkills();
+    window.addEventListener('skillsUpdated', handleSkillsUpdate);
+    return () => window.removeEventListener('skillsUpdated', handleSkillsUpdate);
   }, []);
 
-  const getSkillsByCategory = (category: string) =>
-    skills.filter((skill) => skill.category === category);
+  const skillsByCategory = useMemo(() => {
+    return categories.reduce((acc, cat) => {
+      acc[cat] = skills.filter((s) => s.category === cat);
+      return acc;
+    }, {} as Record<string, Skill[]>);
+  }, [skills]);
 
   const getIcon = (category: string) => {
+    const size = "w-5 h-5 sm:w-6 sm:h-6";
     switch (category) {
       case 'Language':
-        return <Code className="w-6 h-6" />;
+        return <Code className={size} />;
       case 'Framework':
-        return <Database className="w-6 h-6" />;
+        return <Database className={size} />;
       case 'Design':
-        return <Palette className="w-6 h-6" />;
+        return <Palette className={size} />;
       default:
-        return <Settings className="w-6 h-6" />;
+        return <Settings className={size} />;
     }
   };
 
-  const categories = ['Language', 'Framework'];
-
   return (
-    <section id="skills" className="py-24 px-4 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 reveal">
+    <section id="skills" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 reveal">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-16 animate-fade-in">
-          <div className="inline-flex items-center px-6 py-3 rounded-full bg-white/90 backdrop-blur-lg border-2 border-blue-200 text-blue-700 font-bold mb-8 animate-bounce shadow-xl">
-            <Code className="w-5 h-5 mr-3 animate-pulse" />
+        <div className="text-center mb-10 sm:mb-16">
+          <div className="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-white/90 backdrop-blur-lg border-2 border-blue-200 text-blue-700 font-bold mb-6 sm:mb-8 shadow-lg text-sm sm:text-base">
+            <Code className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
             Technical Skills
           </div>
-          <h2 className="text-5xl md:text-6xl font-heading font-black text-gradient mb-8">
+          <h2 className="text-3xl sm:text-5xl md:text-6xl font-heading font-black text-gradient mb-4 sm:mb-8">
             My Skills
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-base sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
             Here are the technologies and tools I work with to bring ideas to life.
           </p>
           {isAuthenticated && (
-            <div className="mt-6">
+            <div className="mt-4 sm:mt-6">
               <Link to="/dashboard">
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  <User className="w-5 h-5 mr-2" />
+                <Button className="bg-blue-600 hover:bg-blue-700 text-sm sm:text-base">
+                  <User className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Manage Skills
                 </Button>
               </Link>
@@ -102,82 +177,40 @@ const SkillsSection = () => {
           )}
         </div>
 
-        {skills.length === 0 ? (
-          <div className="text-center py-12 animate-fade-in">
-            <Code className="w-24 h-24 mx-auto mb-6 text-blue-400 animate-pulse" />
-            <p className="text-2xl text-gray-600 font-semibold">Loading skills...</p>
+        {loading ? (
+          <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
+            {[1, 2].map((i) => (
+              <Card key={i} className="p-6 animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-1/2 mb-6" />
+                <div className="space-y-4">
+                  {[1, 2, 3].map((j) => (
+                    <div key={j} className="space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-1/3" />
+                      <div className="h-3 bg-gray-200 rounded w-full" />
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : skills.length === 0 ? (
+          <div className="text-center py-12">
+            <Code className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 text-blue-400" />
+            <p className="text-lg sm:text-2xl text-gray-600 font-semibold">No skills added yet</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 gap-8">
-            {categories.map((category, categoryIndex) => {
-              const categorySkills = getSkillsByCategory(category);
-              if (categorySkills.length === 0) return null;
+          <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
+            {categories.map((category) => {
+              const categorySkills = skillsByCategory[category];
+              if (!categorySkills || categorySkills.length === 0) return null;
 
               return (
-                <Card
+                <CategoryCard
                   key={category}
-                  className="p-6 bg-white/80 backdrop-blur-lg border-2 border-gray-200 hover:border-blue-300 hover:shadow-2xl transition-all duration-500 hover:scale-105 animate-fade-in group"
-                  style={{ animationDelay: `${categoryIndex * 100}ms` }}
-                >
-                  <CardContent className="p-0">
-                    <div className="flex items-center mb-6">
-                      <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl text-white group-hover:scale-110 transition-transform duration-300">
-                        {getIcon(category)}
-                      </div>
-                      <h3 className="text-xl font-bold ml-4 text-gray-800 group-hover:text-blue-600 transition-colors duration-300">
-                        {category === 'Language' ? 'Programming Languages' : 'Frameworks & Tools'} ({categorySkills.length})
-                      </h3>
-                    </div>
-
-                    <div className="space-y-4">
-                      {categorySkills.map((skill, skillIndex) => (
-                        <div
-                          key={skill.id}
-                          className="space-y-2 animate-fade-in group/skill"
-                          style={{ animationDelay: `${(categoryIndex * 100) + (skillIndex * 50)}ms` }}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                              {skill.image_url ? (
-                                <img
-                                  src={skill.image_url}
-                                  alt={skill.name}
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                  }}
-                                  className="w-8 h-8 rounded-full object-cover group-hover/skill:scale-125 transition-transform duration-300"
-                                />
-                              ) : skill.icon ? (
-                                <span className="text-2xl group-hover/skill:scale-125 transition-transform duration-300">
-                                  {skill.icon}
-                                </span>
-                              ) : (
-                                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                                  {skill.name.charAt(0)}
-                                </div>
-                              )}
-                              <span className="font-semibold text-gray-700 group-hover/skill:text-blue-600 transition-colors duration-300">
-                                {skill.name}
-                              </span>
-                            </div>
-                            <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-                              {skill.level}%
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
-                            <div
-                              className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-1000 ease-out transform origin-left group-hover/skill:scale-x-105"
-                              style={{
-                                width: `${skill.level}%`,
-                                animationDelay: `${(categoryIndex * 100) + (skillIndex * 50) + 200}ms`,
-                              }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                  category={category}
+                  skills={categorySkills}
+                  icon={getIcon(category)}
+                />
               );
             })}
           </div>
@@ -185,6 +218,8 @@ const SkillsSection = () => {
       </div>
     </section>
   );
-};
+});
+
+SkillsSection.displayName = 'SkillsSection';
 
 export default SkillsSection;
