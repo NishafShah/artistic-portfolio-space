@@ -61,10 +61,9 @@ const ReviewsSection = memo(() => {
 
   const fetchReviews = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('reviews')
+    const { data, error } = await (supabase as any)
+      .from('reviews_public')
       .select('id, reviewer_name, rating, review_text, created_at')
-      .eq('is_approved', true)
       .order('created_at', { ascending: false });
 
     if (!error && data) {
