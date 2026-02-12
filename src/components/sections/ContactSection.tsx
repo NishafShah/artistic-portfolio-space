@@ -34,7 +34,7 @@ const socialLinks = [
     external: true,
   },
   {
-    href: 'https://www.linkedin.com/in/syed-nishaf-hussain-shah-8b2409310/',
+    href: 'https://www.linkedin.com/in/nishafshah/',
     icon: Linkedin,
     label: 'LinkedIn',
     external: true,
