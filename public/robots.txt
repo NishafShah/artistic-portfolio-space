@@ -1,8 +1,14 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /dashboard
+Disallow: /reset-password
+Disallow: /forgot-password
 
 User-agent: Bingbot
 Allow: /
+Disallow: /dashboard
+Disallow: /reset-password
+Disallow: /forgot-password
 
 User-agent: Twitterbot
 Allow: /
@@ -12,3 +18,8 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /reset-password
+Disallow: /forgot-password
+
+Sitemap: https://artistic-portfolio-space.lovable.app/sitemap.xml
