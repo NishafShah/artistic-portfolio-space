@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -182,7 +183,19 @@ const CourseDetail = () => {
   const progressPercentage = getProgressPercentage(course.modules.length);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-12">
+    <>
+      {course && (
+        <Helmet>
+          <title>{`${course.title} | ${course.level} Course – Syed Nishaf Hussain Shah`}</title>
+          <meta name="description" content={course.description.slice(0, 155)} />
+          <meta property="og:title" content={`${course.title} – Online Course`} />
+          <meta property="og:description" content={course.description.slice(0, 155)} />
+          {course.image_url && <meta property="og:image" content={course.image_url} />}
+          <meta property="og:type" content="website" />
+          <link rel="canonical" href={`https://artistic-portfolio-space.lovable.app/course/${course.id}`} />
+        </Helmet>
+      )}
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-12">
       <div className="max-w-7xl mx-auto px-4">
         <Button 
           onClick={() => navigate('/')}
@@ -410,6 +423,7 @@ const CourseDetail = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
