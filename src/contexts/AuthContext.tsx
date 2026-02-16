@@ -6,6 +6,7 @@ interface User {
   id: string;
   email: string;
   name: string;
+  role: string;
 }
 
 interface AuthContextType {
@@ -39,14 +40,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // Fetch profile data
           const { data: profile } = await supabase
             .from('profiles')
-            .select('full_name')
-            .eq('user_id', session.user.id)
+        .select('full_name, role')
+        .eq('user_id', session.user.id)
             .maybeSingle();
           
           setUser({
             id: session.user.id,
             email: session.user.email || '',
             name: profile?.full_name || session.user.user_metadata?.full_name || '',
+            role: profile?.role || 'user',
           });
           setIsAuthenticated(true);
         } else {
@@ -65,14 +67,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         supabase
           .from('profiles')
-          .select('full_name')
-          .eq('user_id', session.user.id)
+           .select('full_name, role')
+           .eq('user_id', session.user.id)
           .maybeSingle()
           .then(({ data: profile }) => {
             setUser({
               id: session.user.id,
               email: session.user.email || '',
               name: profile?.full_name || session.user.user_metadata?.full_name || '',
+              role: profile?.role || 'user',
             });
             setIsAuthenticated(true);
             setIsLoading(false);

@@ -27,13 +27,13 @@ const PageLoader = () => (
   </div>
 );
 
-// Protected route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
+// Admin route component - requires admin role
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, isAuthenticated, isLoading } = useAuth();
   
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
+  if (isLoading) return <PageLoader />;
+  if (!isAuthenticated || !user) return <Navigate to="/login" />;
+  if (user.role !== 'admin') return <Navigate to="/" />;
   
   return <>{children}</>;
 };
@@ -51,9 +51,9 @@ const AppRoutes = () => {
         <Route 
           path="/dashboard" 
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <Dashboard />
-            </ProtectedRoute>
+            </AdminRoute>
           } 
         />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
